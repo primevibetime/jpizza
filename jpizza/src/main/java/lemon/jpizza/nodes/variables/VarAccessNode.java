@@ -1,8 +1,8 @@
 package lemon.jpizza.nodes.variables;
 
 import lemon.jpizza.JPType;
-import lemon.jpizza.nodes.Node;
 import lemon.jpizza.Token;
+import lemon.jpizza.nodes.Node;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,7 +12,8 @@ public class VarAccessNode extends Node {
 
     public VarAccessNode(Token var_name_tok) {
         this.var_name_tok = var_name_tok;
-        pos_start = var_name_tok.pos_start.copy(); pos_end = var_name_tok.pos_end.copy();
+        pos_start = var_name_tok.pos_start.copy();
+        pos_end = var_name_tok.pos_end.copy();
         jptype = JPType.VarAccess;
     }
 

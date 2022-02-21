@@ -1,13 +1,12 @@
 package lemon.jpizza.compiler;
 
 public class JStack<T> {
+    static int MAX = 5000;
+    static double GROW_RATE = 1.5;
     public int count;
     T[] stack;
     int top;
     int size;
-
-    static int MAX = 5000;
-    static double GROW_RATE = 1.5;
 
     public JStack(int size) {
         this.size = size;

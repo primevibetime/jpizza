@@ -7,15 +7,10 @@ import java.util.List;
 
 public class JNative {
 
-    public interface Method {
-        NativeResult call(Value[] stack);
-    }
-
     final String name;
     final Method method;
     final int argc;
     final List<String> types;
-
     public JNative(String name, Method method, int argc, List<String> types) {
         this.name = name;
         this.method = method;
@@ -44,5 +39,9 @@ public class JNative {
 
     public String toString() {
         return "<function-" + name + ">";
+    }
+
+    public interface Method {
+        NativeResult call(Value[] stack);
     }
 }

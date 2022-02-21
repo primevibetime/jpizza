@@ -1,8 +1,8 @@
 package lemon.jpizza.nodes.expressions;
 
 import lemon.jpizza.JPType;
-import lemon.jpizza.nodes.Node;
 import lemon.jpizza.Position;
+import lemon.jpizza.nodes.Node;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -14,7 +14,8 @@ public class ReturnNode extends Node {
 
     public ReturnNode(Node nodeToReturn, @NotNull Position pos_start, @NotNull Position pos_end) {
         this.nodeToReturn = nodeToReturn;
-        this.pos_start = pos_start.copy(); this.pos_end = pos_end.copy();
+        this.pos_start = pos_start.copy();
+        this.pos_end = pos_end.copy();
         jptype = JPType.Return;
     }
 

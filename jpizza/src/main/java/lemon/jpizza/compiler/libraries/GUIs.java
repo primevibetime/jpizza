@@ -8,25 +8,26 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.Collections;
 
 public class GUIs extends JPExtension {
 
     static JFrame frame;
 
-    @Override
-    public String name() { return "guis"; }
-
     public GUIs(VM vm) {
         super(vm);
+    }
+
+    @Override
+    public String name() {
+        return "guis";
     }
 
     @Override
     public void setup() {
 
         func("createGUI", (args) -> {
-            
+
             frame = new JFrame(args[0].asString());
             frame.setTitle(args[0].asString());
             frame.setFocusTraversalKeysEnabled(false);

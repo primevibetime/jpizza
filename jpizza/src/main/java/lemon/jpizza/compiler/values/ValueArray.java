@@ -5,8 +5,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class ValueArray {
-    public int length;
     public final List<Value> values;
+    public int length;
     public Value[] valuesArray;
 
     public ValueArray() {

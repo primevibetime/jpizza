@@ -1,8 +1,8 @@
 package lemon.jpizza.nodes.values;
 
 import lemon.jpizza.JPType;
-import lemon.jpizza.nodes.Node;
 import lemon.jpizza.Position;
+import lemon.jpizza.nodes.Node;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -51,22 +51,21 @@ public class DictNode extends Node {
         dict.forEach((k, v) -> {
             if (k.jptype == JPType.String) {
                 result.append('"').append(k.asString()).append('"');
-            }
-            else {
+            } else {
                 result.append(k.asString());
             }
             result.append(": ");
             if (v.jptype == JPType.String) {
                 result.append('"').append(v.asString()).append('"');
-            }
-            else {
+            } else {
                 result.append(v.asString());
             }
             result.append(", ");
         });
         if (result.length() > 1) {
             result.setLength(result.length() - 2);
-        } result.append("}");
+        }
+        result.append("}");
         return result.toString();
     }
 
@@ -90,7 +89,8 @@ public class DictNode extends Node {
             Node value = entry.getValue();
             if (!otherDict.dict.containsKey(key)) return false;
             if (!otherDict.dict.get(key).equals(value)) return false;
-        } return true;
+        }
+        return true;
     }
 
     @Override
@@ -99,7 +99,8 @@ public class DictNode extends Node {
         for (Map.Entry<Node, Node> entry : dict.entrySet()) {
             children.add(entry.getKey());
             children.add(entry.getValue());
-        } return children;
+        }
+        return children;
     }
 
     @Override

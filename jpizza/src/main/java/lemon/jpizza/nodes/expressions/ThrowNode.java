@@ -14,7 +14,8 @@ public class ThrowNode extends Node {
     public ThrowNode(Node throwType, Node thrown) {
         this.thrown = thrown;
         this.throwType = throwType;
-        pos_start = throwType.pos_start; pos_end = thrown.pos_end;
+        pos_start = throwType.pos_start;
+        pos_end = thrown.pos_end;
         jptype = JPType.Throw;
     }
 

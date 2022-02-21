@@ -2,10 +2,10 @@ package lemon.jpizza.compiler.values;
 
 public class Var {
     public final String type;
-    public Value val;
     public final boolean constant;
     public final int min;
     public final int max;
+    public Value val;
 
     public Var(String type, Value val, boolean constant) {
         this.type = type;

@@ -59,67 +59,125 @@ public class Token {
 
     public String asString() {
         switch (type) {
-            case Type: return String.join("", (List<String>) value);
-            case InvisibleNewline: return "";
-            case LeftTildeArrow: return "<~";
-            case TildeTilde: return "~~";
-            case RightTildeArrow: return "~>";
-            case Equal: return "=";
-            case TildeAmpersand: return "~&";
-            case TildePipe: return "~|";
-            case TildeCaret: return "~^";
-            case Tilde: return "~";
-            case At: return "@";
+            case Type:
+                return String.join("", (List<String>) value);
+            case InvisibleNewline:
+                return "";
+            case LeftTildeArrow:
+                return "<~";
+            case TildeTilde:
+                return "~~";
+            case RightTildeArrow:
+                return "~>";
+            case Equal:
+                return "=";
+            case TildeAmpersand:
+                return "~&";
+            case TildePipe:
+                return "~|";
+            case TildeCaret:
+                return "~^";
+            case Tilde:
+                return "~";
+            case At:
+                return "@";
             case Int:
             case Float:
-            case Boolean: return String.valueOf(value);
-            case String: return ((Pair<String, Boolean>) value).a;
-            case Plus: return "+";
-            case Minus: return "-";
-            case Star: return "*";
-            case Slash: return "/";
-            case LeftParen: return "(";
-            case RightParen: return ")";
-            case EndOfFile: return "EOF";
-            case Newline: return "\n";
-            case Caret: return "^";
+            case Boolean:
+                return String.valueOf(value);
+            case String:
+                return ((Pair<String, Boolean>) value).a;
+            case Plus:
+                return "+";
+            case Minus:
+                return "-";
+            case Star:
+                return "*";
+            case Slash:
+                return "/";
+            case LeftParen:
+                return "(";
+            case RightParen:
+                return ")";
+            case EndOfFile:
+                return "EOF";
+            case Newline:
+                return "\n";
+            case Caret:
+                return "^";
             case Identifier:
-            case Keyword: return (String) value;
-            case FatArrow: return "=>";
-            case EqualEqual: return "==";
-            case BangEqual: return "!=";
-            case LeftAngle: return "<";
-            case RightAngle: return ">";
-            case LessEquals: return "<=";
-            case GreaterEquals: return ">=";
-            case Ampersand: return "&";
-            case Pipe: return "|";
-            case Bang: return "!";
-            case ColonColon: return "::";
-            case Percent: return "%";
-            case QuestionMark: return "?";
-            case Colon: return ":";
-            case DollarUnderscore: return "$_";
-            case DollarSign: return "$";
-            case SkinnyArrow: return "->";
-            case AngleAngle: return ">>";
-            case Comma: return ",";
-            case LeftBracket: return "[";
-            case RightBracket: return "]";
-            case LeftBrace: return "{";
-            case RightBrace: return "}";
-            case PlusEquals: return "+=";
-            case MinusEquals: return "-=";
-            case StarEquals: return "*=";
-            case SlashEquals: return "/=";
-            case CaretEquals: return "^=";
-            case PlusPlus: return "++";
-            case MinusMinus: return "--";
-            case Dot: return ".";
-            case Hash: return "#";
-            case LeftArrow: return "<-";
-            case Backslash: return "\\";
-            case DotDot: return "..";
+            case Keyword:
+                return (String) value;
+            case FatArrow:
+                return "=>";
+            case EqualEqual:
+                return "==";
+            case BangEqual:
+                return "!=";
+            case LeftAngle:
+                return "<";
+            case RightAngle:
+                return ">";
+            case LessEquals:
+                return "<=";
+            case GreaterEquals:
+                return ">=";
+            case Ampersand:
+                return "&";
+            case Pipe:
+                return "|";
+            case Bang:
+                return "!";
+            case ColonColon:
+                return "::";
+            case Percent:
+                return "%";
+            case QuestionMark:
+                return "?";
+            case Colon:
+                return ":";
+            case DollarUnderscore:
+                return "$_";
+            case DollarSign:
+                return "$";
+            case SkinnyArrow:
+                return "->";
+            case AngleAngle:
+                return ">>";
+            case Comma:
+                return ",";
+            case LeftBracket:
+                return "[";
+            case RightBracket:
+                return "]";
+            case LeftBrace:
+                return "{";
+            case RightBrace:
+                return "}";
+            case PlusEquals:
+                return "+=";
+            case MinusEquals:
+                return "-=";
+            case StarEquals:
+                return "*=";
+            case SlashEquals:
+                return "/=";
+            case CaretEquals:
+                return "^=";
+            case PlusPlus:
+                return "++";
+            case MinusMinus:
+                return "--";
+            case Dot:
+                return ".";
+            case Hash:
+                return "#";
+            case LeftArrow:
+                return "<-";
+            case Backslash:
+                return "\\";
+            case DotDot:
+                return "..";
         }
         return "";
     }

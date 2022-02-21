@@ -1,8 +1,8 @@
 package lemon.jpizza.nodes.values;
 
 import lemon.jpizza.JPType;
-import lemon.jpizza.nodes.Node;
 import lemon.jpizza.Token;
+import lemon.jpizza.nodes.Node;
 
 public class NullNode extends ValueNode {
     public NullNode(Token tok) {

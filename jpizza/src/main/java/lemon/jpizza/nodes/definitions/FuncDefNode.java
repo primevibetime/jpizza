@@ -1,8 +1,8 @@
 package lemon.jpizza.nodes.definitions;
 
 import lemon.jpizza.JPType;
-import lemon.jpizza.nodes.Node;
 import lemon.jpizza.Token;
+import lemon.jpizza.nodes.Node;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,9 +20,9 @@ public class FuncDefNode extends Node {
     public final List<String> returnType;
     public final List<Node> defaults;
     public final int defaultCount;
-    public boolean catcher = false;
     public final String argname;
     public final String kwargname;
+    public boolean catcher = false;
 
     public FuncDefNode(Token var_name_tok, List<Token> arg_name_toks, List<Token> arg_type_toks, Node body_node,
                        boolean autoreturn, boolean async, List<String> returnType, List<Node> defaults, int defaultCount,
@@ -42,7 +42,7 @@ public class FuncDefNode extends Node {
 
         pos_start = var_name_tok != null ? var_name_tok.pos_start : (
                 arg_name_toks != null && arg_name_toks.size() > 0 ? arg_name_toks.get(0).pos_start : body_node.pos_start
-                );
+        );
         pos_end = body_node.pos_end;
         jptype = JPType.FuncDef;
     }
@@ -72,7 +72,7 @@ public class FuncDefNode extends Node {
     public String visualize() {
         return "fn" + (
                 var_name_tok != null ?
-                " " + var_name_tok.value : ""
+                        " " + var_name_tok.value : ""
         ) + "(" + arg_name_toks.stream().map(x -> x.value.toString()).collect(Collectors.joining(", ")) + ")";
     }
 }

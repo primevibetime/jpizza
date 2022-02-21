@@ -9,12 +9,12 @@ import java.util.Map;
 import java.util.Scanner;
 
 public class Logger {
-    boolean log = true;
-    boolean tips = false;
     public final boolean debug = false;
     final int omitt = 5;
     final int tape = 40;
     final Scanner scanner = new Scanner(System.in);
+    boolean log = true;
+    boolean tips = false;
 
     public void reset() {
         log = true;
@@ -36,12 +36,10 @@ public class Logger {
                 for (int i = 0; i < l.size(); i++)
                     if (i >= omitt && i < l.size() - omitt) {
                         if (i == omitt + 1) sb.append("..., ");
-                    }
-                    else sb.append(ots(l.get(i), true)).append(", ");
+                    } else sb.append(ots(l.get(i), true)).append(", ");
 
                 return "[ " + sb + "len=" + l.size() + " ]";
-            }
-            else if (val.isMap) {
+            } else if (val.isMap) {
                 StringBuilder sb = new StringBuilder();
                 Map<Value, Value> d = val.asMap();
 
@@ -49,16 +47,13 @@ public class Logger {
                 for (int i = 0; i < keys.length; i++)
                     if (i >= omitt && i < keys.length - omitt) {
                         if (i == omitt + 1) sb.append("..., ");
-                    }
-                    else sb.append(ots(keys[i], true)).append(": ")
+                    } else sb.append(ots(keys[i], true)).append(": ")
                             .append(ots(d.get(keys[i]), true)).append(", ");
 
                 return "{ " + sb + "len=" + keys.length + " }";
-            }
-            else if (val.isNull) {
+            } else if (val.isNull) {
                 return "null";
-            }
-            else if (val.isString && stringInner) {
+            } else if (val.isString && stringInner) {
                 return "\"" + val.asString() + "\"";
             }
             return val.asString();
@@ -104,11 +99,21 @@ public class Logger {
         if (log) System.out.println(ots(text));
     }
 
-    public void disableLogging() { log = false; }
-    public void enableLogging() { log = true; }
+    public void disableLogging() {
+        log = false;
+    }
 
-    public void enableTips() { tips = true; }
-    public void disableTips() { tips = false; }
+    public void enableLogging() {
+        log = true;
+    }
+
+    public void enableTips() {
+        tips = true;
+    }
+
+    public void disableTips() {
+        tips = false;
+    }
 
     public void debug(String format) {
         if (debug)

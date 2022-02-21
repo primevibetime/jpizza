@@ -1,6 +1,9 @@
 package lemon.jpizza.nodes.values;
 
-import lemon.jpizza.*;
+import lemon.jpizza.JPType;
+import lemon.jpizza.Position;
+import lemon.jpizza.Token;
+import lemon.jpizza.TokenType;
 import lemon.jpizza.nodes.Node;
 
 public class BooleanNode extends ValueNode {

@@ -53,8 +53,7 @@ public class TreePrinter {
         for (int i = 0; i < max; i++) {
             if (i < aLines.length) {
                 sb.append(aLines[i]).append(repeat(" ", width(a) - aLines[i].length()));
-            }
-            else {
+            } else {
                 sb.append(repeat(" ", width(a)));
             }
             if (i < bLines.length) {

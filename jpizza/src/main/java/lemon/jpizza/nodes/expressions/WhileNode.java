@@ -17,7 +17,8 @@ public class WhileNode extends Node {
         this.body_node = body_node;
         this.retnull = retnull;
         this.conLast = conLast;
-        pos_start = condition_node.pos_start.copy(); pos_end = body_node.pos_end.copy();
+        pos_start = condition_node.pos_start.copy();
+        pos_end = body_node.pos_end.copy();
         jptype = JPType.While;
     }
 

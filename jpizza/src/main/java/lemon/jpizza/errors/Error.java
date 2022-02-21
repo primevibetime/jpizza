@@ -17,15 +17,6 @@ public class Error {
         this.details = details;
     }
 
-    public String asString() {
-        return String.format(
-                "%s: %s\nFile %s, line %s\n%s",
-                error_name, details,
-                pos_start.fn, pos_start.ln + 1,
-                Constants.stringWithArrows(pos_start.ftext, pos_start, pos_end)
-        );
-    }
-
     public static Error IllegalCharError(@NotNull Position start_pos, @NotNull Position end_pos, String details) {
         return new Error(start_pos, end_pos, "Illegal Character", details);
     }
@@ -36,6 +27,15 @@ public class Error {
 
     public static Error InvalidSyntax(@NotNull Position start_pos, @NotNull Position end_pos, String details) {
         return new Error(start_pos, end_pos, "Invalid Syntax", details);
+    }
+
+    public String asString() {
+        return String.format(
+                "%s: %s\nFile %s, line %s\n%s",
+                error_name, details,
+                pos_start.fn, pos_start.ln + 1,
+                Constants.stringWithArrows(pos_start.ftext, pos_start, pos_end)
+        );
     }
 
 }

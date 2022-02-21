@@ -8,21 +8,29 @@ import lemon.jpizza.compiler.values.functions.JFunc;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ChunkBuilder {
     int i = 0;
     int[] code;
+
     private ChunkBuilder(byte[] code) {
         this.code = new int[code.length / 4];
         for (int i = 0; i < this.code.length; i++) {
             int v = 0;
-            v |= (code[i * 4    ] & 0xFF) << 24;
+            v |= (code[i * 4] & 0xFF) << 24;
             v |= (code[i * 4 + 1] & 0xFF) << 16;
-            v |= (code[i * 4 + 2] & 0xFF) <<  8;
+            v |= (code[i * 4 + 2] & 0xFF) << 8;
             v |= (code[i * 4 + 3] & 0xFF);
             this.code[i] = v;
         }
+    }
+
+    public static JFunc Build(byte[] code) throws IOException {
+        return new ChunkBuilder(code).readFunc();
     }
 
     private String readString() throws IOException {
@@ -32,7 +40,7 @@ public class ChunkBuilder {
         int len = code[i++];
         byte[] bytes = new byte[len];
         for (int j = 0; j < len; j++) {
-            bytes[j] = (byte)(code[i++] >> 2);
+            bytes[j] = (byte) (code[i++] >> 2);
         }
         return new String(bytes);
     }
@@ -142,8 +150,7 @@ public class ChunkBuilder {
         if (code[i] == 0) {
             i++;
             args = null;
-        }
-        else {
+        } else {
             args = readString();
         }
 
@@ -151,8 +158,7 @@ public class ChunkBuilder {
         if (code[i] == 0) {
             i++;
             kwargs = null;
-        }
-        else {
+        } else {
             kwargs = readString();
         }
 
@@ -176,13 +182,20 @@ public class ChunkBuilder {
 
     private Value readValue() throws IOException {
         switch (code[i]) {
-            case ChunkCode.Boolean: return new Value(readBoolean());
-            case ChunkCode.Number: return new Value(readDouble());
-            case ChunkCode.String: return new Value(readString());
-            case ChunkCode.Type: return Value.fromType(readType());
-            case ChunkCode.Enum: return new Value(readEnum());
-            case ChunkCode.Func: return new Value(readFunc());
-            default: return null;
+            case ChunkCode.Boolean:
+                return new Value(readBoolean());
+            case ChunkCode.Number:
+                return new Value(readDouble());
+            case ChunkCode.String:
+                return new Value(readString());
+            case ChunkCode.Type:
+                return Value.fromType(readType());
+            case ChunkCode.Enum:
+                return new Value(readEnum());
+            case ChunkCode.Func:
+                return new Value(readFunc());
+            default:
+                return null;
         }
     }
 
@@ -196,16 +209,14 @@ public class ChunkBuilder {
         String packageName = null;
         if (code[i] == 0) {
             i++;
-        }
-        else {
+        } else {
             packageName = readString();
         }
 
         String target = null;
         if (code[i] == 0) {
             i++;
-        }
-        else {
+        } else {
             target = readString();
         }
 
@@ -243,9 +254,5 @@ public class ChunkBuilder {
         chunk.code = code;
         chunk.constants = values;
         return chunk;
-    }
-
-    public static JFunc Build(byte[] code) throws IOException {
-        return new ChunkBuilder(code).readFunc();
     }
 }

@@ -1,9 +1,9 @@
 package lemon.jpizza.nodes.definitions;
 
 import lemon.jpizza.JPType;
-import lemon.jpizza.nodes.Node;
 import lemon.jpizza.Position;
 import lemon.jpizza.Token;
+import lemon.jpizza.nodes.Node;
 
 import java.util.ArrayList;
 import java.util.List;

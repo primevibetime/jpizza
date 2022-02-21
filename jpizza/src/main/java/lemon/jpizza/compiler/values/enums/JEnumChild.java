@@ -9,19 +9,16 @@ import lemon.jpizza.compiler.vm.VM;
 import java.util.*;
 
 public class JEnumChild {
-    final int value;
-    JEnum parent;
-
-    private final Value asValue;
-
     // For Enum Props
     public final List<String> props;
     public final List<List<String>> propTypes;
     public final List<String> generics;
     public final List<Integer> genericSlots;
-    
     public final int arity;
     public final int genericArity;
+    final int value;
+    private final Value asValue;
+    JEnum parent;
 
     public JEnumChild(int value, List<String> props, List<List<String>> propTypes, List<String> generics, List<Integer> genericSlots) {
         this.value = value;
@@ -44,16 +41,16 @@ public class JEnumChild {
         return value == other.value;
     }
 
-    public void setParent(JEnum jEnum) {
-        parent = jEnum;
-    }
-
     public String type() {
         return parent.name();
     }
 
     public JEnum getParent() {
         return parent;
+    }
+
+    public void setParent(JEnum jEnum) {
+        parent = jEnum;
     }
 
     public Value create(Value[] args, String[] types, String[] resolvedGenerics, VM vm) {

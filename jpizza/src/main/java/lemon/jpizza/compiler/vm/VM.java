@@ -28,50 +28,24 @@ public class VM {
     public static final int MAX_STACK_SIZE = 256;
     public static final int FRAMES_MAX = 256;
     public static final String VERSION = "2.1.0";
-
-    private static class Traceback {
-        String filename;
-        String context;
-        int offset;
-        Chunk chunk;
-
-        public Traceback(String filename, String context, int offset, Chunk chunk) {
-            this.filename = filename;
-            this.context = context;
-            this.offset = offset;
-            this.chunk = chunk;
-        }
-    }
-
-    final JStack<Value> stack;
-    int ip;
-
-    List<String> exports = null;
-
-    Stack<Traceback> tracebacks;
-    final Map<String, Var> globals;
-
-    final Stack<List<Value>> loopCache;
-    List<Value> currentLoop;
-
-    Pair<String, String> lastError;
-
-    Map<String, Namespace> libraries;
-
-    public CallFrame frame;
-    public final JStack<CallFrame> frames;
-
     static Memo memo = new Memo();
-
-    String mainFunction;
-    String mainClass;
-
+    public final JStack<CallFrame> frames;
+    final JStack<Value> stack;
+    final Map<String, Var> globals;
+    final Stack<List<Value>> loopCache;
+    public CallFrame frame;
     public boolean safe = false;
     public boolean failed = false;
     public boolean sim = false;
-
     public NativeResult res;
-
+    int ip;
+    List<String> exports = null;
+    Stack<Traceback> tracebacks;
+    List<Value> currentLoop;
+    Pair<String, String> lastError;
+    Map<String, Namespace> libraries;
+    String mainFunction;
+    String mainClass;
     JStack<Pair<Integer, Integer>> nehStack = new JStack<>(FRAMES_MAX);
 
     public VM(JFunc function) {
@@ -114,6 +88,16 @@ public class VM {
             vm.push(arg);
         vm.run();
         return vm.res;
+    }
+
+    public static double bitOp(double left, double right, BitCall call) {
+        long power = 0;
+        while (left % 1 != 0 || right % 1 != 0) {
+            left *= 10;
+            right *= 10;
+            power++;
+        }
+        return call.call((long) left, (long) right) / Math.pow(10, power);
     }
 
     void setup() {
@@ -229,11 +213,10 @@ public class VM {
             // Generate error message
             int line = Constants.indexToLine(frame.closure.function.chunk.source(), idx);
             output += String.format("\n%s Error (Runtime): %s\nFile %s, line %s\n%s\n",
-                                    message, reason,
-                                    last.filename, line + 1,
-                                    Constants.highlightFlat(frame.closure.function.chunk.source(), idx, len));
-        }
-        else {
+                    message, reason,
+                    last.filename, line + 1,
+                    Constants.highlightFlat(frame.closure.function.chunk.source(), idx, len));
+        } else {
             output = String.format("%s Error (Runtime): %s\n", message, reason);
         }
 
@@ -241,8 +224,7 @@ public class VM {
 
         if (safe) {
             Shell.logger.warn(output);
-        }
-        else {
+        } else {
             while (frames.count > 0) {
                 CallFrame frame = frames.pop();
                 Traceback traceback = copy.pop();
@@ -325,8 +307,7 @@ public class VM {
                     List<Value> list = new ArrayList<>(a.asList());
                     list.addAll(b.asList());
                     push(new Value(list));
-                }
-                else if (canOverride(a, "add"))
+                } else if (canOverride(a, "add"))
                     return runBin("add", b, a.asInstance());
                 else
                     push(new Value(a.asNumber() + b.asNumber()));
@@ -341,15 +322,13 @@ public class VM {
                     return runBin("mul", b, a.asInstance());
                 if (a.isString) {
                     push(new Value(repeat(a.asString(), b.asNumber().intValue())));
-                }
-                else if (a.isList) {
+                } else if (a.isList) {
                     List<Value> repeated = new ArrayList<>();
                     List<Value> list = a.asList();
                     for (int i = 0; i < b.asNumber().intValue(); i++)
                         repeated.addAll(list);
                     push(new Value(repeated));
-                }
-                else {
+                } else {
                     push(new Value(a.asNumber() * b.asNumber()));
                 }
                 break;
@@ -360,8 +339,7 @@ public class VM {
                     List<Value> list = new ArrayList<>(a.asList());
                     list.remove(b);
                     push(new Value(list));
-                }
-                else
+                } else
                     push(new Value(a.asNumber() / b.asNumber()));
                 break;
             case OpCode.Modulo:
@@ -456,13 +434,13 @@ public class VM {
                 Var var = globals.get(name);
                 if (var != null) {
                     return set(var, value);
-                }
-                else {
+                } else {
                     runtimeError("Scope", "Undefined variable");
                     return VMResult.ERROR;
                 }
             }
-            default: return VMResult.OK;
+            default:
+                return VMResult.OK;
         }
     }
 
@@ -474,34 +452,29 @@ public class VM {
                 if (field != null) {
                     push(field);
                     return VMResult.OK;
-                }
-                else {
+                } else {
                     if (!suppress)
                         runtimeError("Scope", "Undefined attribute");
                     return VMResult.ERROR;
                 }
-            }
-            else if (frame.bound.isClass) {
+            } else if (frame.bound.isClass) {
                 JClass clazz = frame.bound.asClass();
                 Value field = clazz.getField(name, true);
                 if (field != null) {
                     push(field);
                     return VMResult.OK;
-                }
-                else {
+                } else {
                     if (!suppress)
                         runtimeError("Scope", "Undefined attribute");
                     return VMResult.ERROR;
                 }
-            }
-            else if (frame.bound.isNamespace) {
+            } else if (frame.bound.isNamespace) {
                 Namespace ns = frame.bound.asNamespace();
                 Value field = ns.getField(name, true);
                 if (field != null) {
                     push(field);
                     return VMResult.OK;
-                }
-                else {
+                } else {
                     if (!suppress)
                         runtimeError("Scope", "Undefined attribute");
                     return VMResult.ERROR;
@@ -521,8 +494,7 @@ public class VM {
             if (frame.bound.isInstance) {
                 Instance instance = frame.bound.asInstance();
                 return boundNeutral(suppress, instance.setField(name, value, true));
-            }
-            else if (frame.bound.isClass) {
+            } else if (frame.bound.isClass) {
                 JClass clazz = frame.bound.asClass();
                 return boundNeutral(suppress, clazz.setField(name, value, true));
             }
@@ -544,12 +516,14 @@ public class VM {
 
     VMResult attrOps(int op) {
         switch (op) {
-            case OpCode.GetAttr: return getBound(readString(), false);
+            case OpCode.GetAttr:
+                return getBound(readString(), false);
             case OpCode.SetAttr:
                 setBound(readString(), pop(), false);
                 push(new Value());
                 return VMResult.OK;
-            default: return VMResult.OK;
+            default:
+                return VMResult.OK;
         }
     }
 
@@ -565,8 +539,7 @@ public class VM {
 
                 if (canOverride(a, "eq")) {
                     return runBin("eq", b, a.asInstance());
-                }
-                else if (canOverride(b, "eq")) {
+                } else if (canOverride(b, "eq")) {
                     return runBin("eq", a, b.asInstance());
                 }
                 push(new Value(a.equals(b)));
@@ -607,8 +580,7 @@ public class VM {
             if (val == null) {
                 push(new Value(false));
                 return VMResult.OK;
-            }
-            else if (!val.equals(entry.getValue())) {
+            } else if (!val.equals(entry.getValue())) {
                 push(new Value(false));
                 return VMResult.OK;
             }
@@ -619,8 +591,7 @@ public class VM {
             if (val == null) {
                 runtimeError("Scope", "Undefined attribute");
                 return VMResult.ERROR;
-            }
-            else {
+            } else {
                 push(new Value(new Var(
                         "any",
                         val,
@@ -648,8 +619,7 @@ public class VM {
                     runtimeError("Range", "Value out of range");
                     return VMResult.ERROR;
                 }
-            }
-            else {
+            } else {
                 runtimeError("Range", "Value out of range");
                 return VMResult.ERROR;
             }
@@ -715,7 +685,8 @@ public class VM {
                 return VMResult.OK;
             }
 
-            default: return VMResult.OK;
+            default:
+                return VMResult.OK;
         }
     }
 
@@ -732,10 +703,6 @@ public class VM {
         return readType(rawType, getter);
     }
 
-    interface GenericGetter {
-        String get(String key);
-    }
-
     String readType(List<String> rawtype, GenericGetter getter) {
         StringBuilder sb = new StringBuilder();
 
@@ -745,8 +712,7 @@ public class VM {
                 int slot = Integer.parseInt(raw.substring(1));
                 sb.append(get(slot).asVar().val.asString());
                 continue;
-            }
-            else if (getter != null) {
+            } else if (getter != null) {
                 String gen = getter.get(raw);
                 if (gen != null) {
                     sb.append(gen);
@@ -864,13 +830,13 @@ public class VM {
                 if (res.ok()) {
                     push(res.value());
                     return VMResult.OK;
-                }
-                else {
+                } else {
                     runtimeError(res.name(), res.reason());
                     return VMResult.ERROR;
                 }
 
-            default: throw new IllegalStateException("Unexpected value: " + op);
+            default:
+                throw new IllegalStateException("Unexpected value: " + op);
         }
     }
 
@@ -878,23 +844,19 @@ public class VM {
         String name = readString();
         Value val = pop();
 
-        if (canOverride(val,  "access")) {
+        if (canOverride(val, "access")) {
             return runBin("access", new Value(name), val.asInstance());
         }
 
         if (val.isInstance) {
             return access(val, val.asInstance(), name);
-        }
-        else if (val.isClass) {
+        } else if (val.isClass) {
             return access(val, val.asClass(), name);
-        }
-        else if (val.isNamespace) {
+        } else if (val.isNamespace) {
             return access(val, val.asNamespace(), name);
-        }
-        else if (val.isEnumParent) {
+        } else if (val.isEnumParent) {
             return access(val, val.asEnum(), name);
-        }
-        else {
+        } else {
             runtimeError("Type", "Type " + val.type() + " does not have members");
             return VMResult.ERROR;
         }
@@ -904,8 +866,7 @@ public class VM {
         if (jEnum.has(name)) {
             push(jEnum.get(name));
             return VMResult.OK;
-        }
-        else {
+        } else {
             runtimeError("Enum", "Enum " + val.type() + " does not have member " + name);
             return VMResult.ERROR;
         }
@@ -936,8 +897,7 @@ public class VM {
                     if (idx >= list.size()) {
                         runtimeError("Index", "Index out of bounds");
                         return VMResult.ERROR;
-                    }
-                    else if (idx < 0) {
+                    } else if (idx < 0) {
                         idx += list.size();
                         if (idx < 0) {
                             runtimeError("Index", "Index out of bounds");
@@ -945,14 +905,11 @@ public class VM {
                         }
                     }
                     push(list.get(idx));
-                }
-                else if (canOverride(collection, op == OpCode.Get ? "get" : "bracket")) {
+                } else if (canOverride(collection, op == OpCode.Get ? "get" : "bracket")) {
                     return runBin(op == OpCode.Get ? "get" : "bracket", index, collection.asInstance());
-                }
-                else if (collection.isMap) {
+                } else if (collection.isMap) {
                     push(collection.get(index));
-                }
-                else {
+                } else {
                     runtimeError("Type", "Type " + collection.type() + " does not have members");
                     return VMResult.ERROR;
                 }
@@ -960,22 +917,9 @@ public class VM {
                 return VMResult.OK;
             }
 
-            default: return VMResult.OK;
+            default:
+                return VMResult.OK;
         }
-    }
-
-    public interface BitCall {
-        long call(long left, long right);
-    }
-
-    public static double bitOp(double left, double right, BitCall call) {
-        long power = 0;
-        while (left % 1 != 0 || right % 1 != 0) {
-            left *= 10;
-            right *= 10;
-            power++;
-        }
-        return call.call((long) left, (long) right) / Math.pow(10, power);
     }
 
     VMResult bitOps(int instruction) {
@@ -1082,8 +1026,7 @@ public class VM {
                     push(val);
                     argList.add(val);
                 }
-            }
-            else {
+            } else {
                 push(arg);
                 argList.add(arg);
             }
@@ -1102,19 +1045,15 @@ public class VM {
     public boolean callValue(Value callee, Value[] args, Map<String, Value> kwargs, String[] generics) {
         if (callee.isNativeFunc) {
             return call(callee.asNative(), args);
-        }
-        else if (callee.isClosure) {
+        } else if (callee.isClosure) {
             return call(callee.asClosure(), args, kwargs, generics);
-        }
-        else if (callee.isClass) {
+        } else if (callee.isClass) {
             return call(callee.asClass(), args, kwargs, generics);
-        }
-        else if (callee.isBoundMethod) {
+        } else if (callee.isBoundMethod) {
             BoundMethod bound = callee.asBoundMethod();
             stack.set(stack.count - args.length - generics.length - 1, new Value(new Var("any", bound.receiver, true)));
             return call(bound.closure, bound.receiver, args, kwargs, generics);
-        }
-        else if (callee.isEnumChild) {
+        } else if (callee.isEnumChild) {
             return call(callee.asEnumChild(), generics, args.length);
         }
         runtimeError("Type", "Can only call functions and classes");
@@ -1135,14 +1074,14 @@ public class VM {
 
         if (generics.length != child.genericArity) {
             if ((generics = inferGenerics(
-                generics,
-                child.genericArity,
-                argCount,
-                child.genericSlots,
-                args
+                    generics,
+                    child.genericArity,
+                    argCount,
+                    child.genericSlots,
+                    args
             )) == null) return false;
         }
-    
+
 
         List<String>[] gTypes = new ArrayList[argc];
         for (int i = 0; i < argc; i++) {
@@ -1152,8 +1091,7 @@ public class VM {
                 int idx = child.generics.indexOf(t);
                 if (idx != -1) {
                     newType.add(generics[idx]);
-                }
-                else {
+                } else {
                     newType.add(t);
                 }
             }
@@ -1163,7 +1101,7 @@ public class VM {
         String[] types = new String[argc];
         for (int i = 0; i < argc; i++)
             types[i] = readType(gTypes[i]);
-        
+
         for (int i = 0; i < argc; i++) {
             String type = args[i].type();
             if (!types[i].equals("any") && !type.equals(types[i])) {
@@ -1243,8 +1181,7 @@ public class VM {
             }
             for (int i = args.length; i < closure.function.arity; i++)
                 push(closure.function.defaults.get(i));
-        }
-        else if (args.length > closure.function.arity) {
+        } else if (args.length > closure.function.arity) {
             if (closure.function.args != null) {
                 List<Value> argsList = new ArrayList<>();
                 for (int i = closure.function.arity; i < args.length; i++)
@@ -1252,8 +1189,7 @@ public class VM {
                 for (int i = argsList.size() - 1; i >= 0; i--)
                     extraArgs.add(argsList.get(i));
                 push(new Value(extraArgs));
-            }
-            else {
+            } else {
                 runtimeError("Argument Count", "Expected " + closure.function.arity + " but got " + args.length);
                 return false;
             }
@@ -1274,8 +1210,7 @@ public class VM {
             thread.tracebacks.push(traceback);
             Thread t = new Thread(thread::run);
             t.start();
-        }
-        else {
+        } else {
             tracebacks.push(traceback);
 
             addFrame(closure, stack.count - closure.function.totarity - 1, binding);
@@ -1286,11 +1221,11 @@ public class VM {
     String[] pushInference(JClosure closure, Value[] args, String[] generics) {
         if (generics.length != closure.function.genericArity) {
             if ((generics = inferGenerics(
-                generics,
-                closure.function.genericArity,
-                closure.function.arity,
-                closure.function.genericSlots,
-                args
+                    generics,
+                    closure.function.genericArity,
+                    closure.function.arity,
+                    closure.function.genericSlots,
+                    args
             )) == null) return null;
 
             // Move arguments out of the way
@@ -1392,7 +1327,8 @@ public class VM {
                 push(pop().setRef(pop()));
                 return VMResult.OK;
 
-            default: throw new IllegalArgumentException("Invalid ref op: " + op);
+            default:
+                throw new IllegalArgumentException("Invalid ref op: " + op);
         }
     }
 
@@ -1403,8 +1339,7 @@ public class VM {
                 if (globals.containsKey(name)) {
                     globals.remove(name);
                     return VMResult.OK;
-                }
-                else {
+                } else {
                     runtimeError("Scope", "No such global: " + name);
                     return VMResult.ERROR;
                 }
@@ -1425,7 +1360,8 @@ public class VM {
                 frame.closure.upvalues[slot] = null;
                 return VMResult.OK;
             }
-            default: throw new IllegalArgumentException("Invalid free op: " + op);
+            default:
+                throw new IllegalArgumentException("Invalid free op: " + op);
         }
     }
 
@@ -1448,8 +1384,7 @@ public class VM {
                     if (val.isPatternBinding) {
                         matches.put(name, val.asPatternBinding());
                         keys.add(0, name);
-                    }
-                    else {
+                    } else {
                         cases.put(name, val);
                     }
                 }
@@ -1460,7 +1395,8 @@ public class VM {
 
                 return VMResult.OK;
             }
-            default: throw new IllegalArgumentException("How did you get here?");
+            default:
+                throw new IllegalArgumentException("How did you get here?");
         }
     }
 
@@ -1511,8 +1447,7 @@ public class VM {
 
                     if (isConstructor) {
                         push(bound);
-                    }
-                    else {
+                    } else {
                         push(result);
                         if (frame.memoize == 2) {
                             memo.storeCache(result);
@@ -1618,11 +1553,9 @@ public class VM {
                         URL[] urls;
                         if (Files.exists(Paths.get(modFilePath))) {
                             urls = new URL[]{new URL("file://" + modFilePath)};
-                        }
-                        else if (Files.exists(Paths.get(file_name))) {
+                        } else if (Files.exists(Paths.get(file_name))) {
                             urls = new URL[]{new URL("file://" + file_name)};
-                        }
-                        else {
+                        } else {
                             runtimeError("Imaginary File", "File '" + fn + "' not found");
                             res = VMResult.ERROR;
                             break;
@@ -1634,8 +1567,7 @@ public class VM {
                         if (loadedObject instanceof JPExtension) {
                             JPExtension extension = (JPExtension) loadedObject;
                             extension.setup();
-                        }
-                        else {
+                        } else {
                             runtimeError("Imaginary File", "File '" + fn + "' is not a valid extension");
                             res = VMResult.ERROR;
                             break;
@@ -1663,11 +1595,11 @@ public class VM {
                     if (isPublic) {
                         JEnum enumObj = enumerator.asEnum();
                         for (Map.Entry<String, JEnumChild> name : enumObj.children().entrySet()) {
-                                globals.put(name.getKey(), new Var(
-                                        enumObj.name(),
-                                        new Value(name.getValue()),
-                                        true
-                                ));
+                            globals.put(name.getKey(), new Var(
+                                    enumObj.name(),
+                                    new Value(name.getValue()),
+                                    true
+                            ));
                         }
                     }
 
@@ -1831,8 +1763,7 @@ public class VM {
                     if (bit) {
                         Pair<Integer, Integer> pair = new Pair<>(frames.count, stack.count);
                         nehStack.push(pair);
-                    }
-                    else {
+                    } else {
                         nehStack.pop();
                     }
                     res = VMResult.OK;
@@ -1844,8 +1775,7 @@ public class VM {
                     Value a = pop();
                     if (a.isNull) {
                         push(b);
-                    }
-                    else {
+                    } else {
                         push(a);
                     }
                     res = VMResult.OK;
@@ -1956,8 +1886,7 @@ public class VM {
             if (res == VMResult.EXIT) {
                 Shell.logger.debug("Exiting\n");
                 return VMResult.OK;
-            }
-            else if (res == VMResult.ERROR) {
+            } else if (res == VMResult.ERROR) {
                 if (frame.catchError) {
                     frames.pop();
                     if (frames.count == 0) {
@@ -2014,8 +1943,7 @@ public class VM {
         for (String name : names) {
             if (values.containsKey(name)) {
                 globals.put(name, values.get(name));
-            }
-            else {
+            } else {
                 runtimeError("Scope", "Undefined field: " + name);
                 return VMResult.ERROR;
             }
@@ -2089,13 +2017,12 @@ public class VM {
 
             push(val);
 
-            boolean res = call(closure, new Value[]{ val }, new HashMap<>(), new String[0]);
+            boolean res = call(closure, new Value[]{val}, new HashMap<>(), new String[0]);
             if (!res) {
                 return;
             }
             run();
-        }
-        else if (mainClass != null) {
+        } else if (mainClass != null) {
             Var var = globals.get(mainClass);
             if (var == null || !var.val.isClass) {
                 runtimeError("Scope", "Main class not found");
@@ -2111,7 +2038,7 @@ public class VM {
             push(new Value(closure));
             push(val);
 
-            boolean res = call(closure, new Value(clazz), new Value[]{ val }, new HashMap<>(), new String[0]);
+            boolean res = call(closure, new Value(clazz), new Value[]{val}, new HashMap<>(), new String[0]);
             if (!res) {
                 return;
             }
@@ -2137,6 +2064,28 @@ public class VM {
 
     public Namespace asNamespace(String name) {
         return new Namespace(name, globals, exports == null ? new ArrayList<>(globals.keySet()) : exports);
+    }
+
+    interface GenericGetter {
+        String get(String key);
+    }
+
+    public interface BitCall {
+        long call(long left, long right);
+    }
+
+    private static class Traceback {
+        String filename;
+        String context;
+        int offset;
+        Chunk chunk;
+
+        public Traceback(String filename, String context, int offset, Chunk chunk) {
+            this.filename = filename;
+            this.context = context;
+            this.offset = offset;
+            this.chunk = chunk;
+        }
     }
 
 }

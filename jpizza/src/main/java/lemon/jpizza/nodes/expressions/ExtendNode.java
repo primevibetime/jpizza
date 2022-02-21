@@ -13,7 +13,8 @@ public class ExtendNode extends Node {
     public ExtendNode(Token file_name_tok) {
         this.file_name_tok = file_name_tok;
 
-        pos_start = file_name_tok.pos_start.copy(); pos_end = file_name_tok.pos_end.copy();
+        pos_start = file_name_tok.pos_start.copy();
+        pos_end = file_name_tok.pos_end.copy();
         jptype = JPType.Import;
     }
 

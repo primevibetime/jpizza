@@ -1,13 +1,13 @@
 package lemon.jpizza;
 
 public class Position {
+    public final String fn;
+    public final String ftext;
     public int idx;
     public int ln;
     public int col;
     public int tcol = -1;
     public int tidx;
-    public final String fn;
-    public final String ftext;
 
     public Position(int idx, int ln, int col, String fn, String ftext) {
         this.idx = idx;

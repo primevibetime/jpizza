@@ -15,31 +15,23 @@ import lemon.jpizza.nodes.Node;
 import lemon.jpizza.nodes.expressions.BodyNode;
 import lemon.jpizza.results.ParseResult;
 
-import java.io.*;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
 
 public class Shell {
 
     public static final Logger logger = new Logger();
-    public static String root;
-    public static VM vm;
     public static final Map<String, Var> globals = new HashMap<>();
     public static final String fileEncoding = System.getProperty("file.encoding");
-
-    static class Flags {
-        public static final int COMPILE   = 0b00000001;
-        public static final int REFACTOR  = 0b00000100;
-        public static final int HELP      = 0b00001000;
-        public static final int VERSION   = 0b00010000;
-        public static final int DOCS      = 0b00100000;
-        public static final int OUTPUT    = 0b01000000;
-        public static final int RUN       = 0b10000000;
-        public static final int SHELL     = 0b00000000;
-    }
+    public static String root;
+    public static VM vm;
 
     public static String[] getFNDirs(String dir) {
         int ind = dir.lastIndexOf('\\');
@@ -195,7 +187,6 @@ public class Shell {
         }
     }
 
-
     public static void repl() {
         Scanner in = new Scanner(System.in);
 
@@ -212,8 +203,7 @@ public class Shell {
             Pair<JFunc, Error> a = compile("<shell>", input);
             if (a.b != null) {
                 Shell.logger.fail(a.b.asString());
-            }
-            else {
+            } else {
                 runCompiled("<shell>", a.a, new String[]{"<shell>"}, globals);
             }
         }
@@ -321,6 +311,17 @@ public class Shell {
         } catch (IOException e) {
             Shell.logger.fail("File is not readable!");
         }
+    }
+
+    static class Flags {
+        public static final int COMPILE = 0b00000001;
+        public static final int REFACTOR = 0b00000100;
+        public static final int HELP = 0b00001000;
+        public static final int VERSION = 0b00010000;
+        public static final int DOCS = 0b00100000;
+        public static final int OUTPUT = 0b01000000;
+        public static final int RUN = 0b10000000;
+        public static final int SHELL = 0b00000000;
     }
 
 }

@@ -16,11 +16,13 @@ import java.util.List;
 import static lemon.jpizza.Constants.readString;
 
 public class IOFile extends JPExtension {
-    @Override
-    public String name() { return "iofile"; }
-
     public IOFile(VM vm) {
         super(vm);
+    }
+
+    @Override
+    public String name() {
+        return "iofile";
     }
 
     private String dir(Value val) {
@@ -85,8 +87,7 @@ public class IOFile extends JPExtension {
                 } catch (IOException e) {
                     return Err("Internal", "Could not delete directory (" + e.getMessage() + ")");
                 }
-            }
-            else {
+            } else {
                 try {
                     FileUtils.delete(new File(path));
                     return Ok(true);
@@ -140,8 +141,7 @@ public class IOFile extends JPExtension {
                 Object obj = ois.readObject();
                 if (obj instanceof Value) {
                     out = (Value) obj;
-                }
-                else {
+                } else {
                     out = Value.fromObject(obj);
                 }
 
@@ -177,8 +177,7 @@ public class IOFile extends JPExtension {
                 FileOutputStream fos = new FileOutputStream(file);
                 if (obj.isBytes) {
                     fos.write(obj.asBytes());
-                }
-                else {
+                } else {
                     ObjectOutputStream oos = new ObjectOutputStream(fos);
                     oos.writeObject(obj.asObject());
                     oos.close();

@@ -9,13 +9,13 @@ import java.util.Collections;
 import java.util.List;
 
 public class Chunk {
-    List<Integer> code;
+    final String source;
     public int[] codeArray;
     public String packageName;
     public String target;
-    ValueArray constants;
     public List<FlatPosition> positions;
-    final String source;
+    List<Integer> code;
+    ValueArray constants;
 
     public Chunk(String source) {
         this.code = new ArrayList<>();
@@ -30,8 +30,7 @@ public class Chunk {
         FlatPosition last = positions.get(positions.size() - 1);
         if (last.index == index && last.len == len) {
             last.span++;
-        }
-        else {
+        } else {
             positions.add(new FlatPosition(index, len, 1));
         }
     }
@@ -70,6 +69,7 @@ public class Chunk {
     public ValueArray constants() {
         return constants;
     }
+
     public void constants(ValueArray constants) {
         this.constants = constants;
     }
@@ -79,14 +79,12 @@ public class Chunk {
         Value.addAllString(list, source);
         if (packageName != null) {
             Value.addAllString(list, packageName);
-        }
-        else {
+        } else {
             list.add(0);
         }
         if (target != null) {
             Value.addAllString(list, target);
-        }
-        else {
+        } else {
             list.add(0);
         }
         list.add(positions.size());

@@ -8,11 +8,13 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Generators extends JPExtension {
-    @Override
-    public String name() { return "gens"; }
-
     public Generators(VM vm) {
         super(vm);
+    }
+
+    @Override
+    public String name() {
+        return "gens";
     }
 
     @Override

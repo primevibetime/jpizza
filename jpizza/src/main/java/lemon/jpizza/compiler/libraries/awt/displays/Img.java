@@ -19,8 +19,7 @@ public class Img extends Drawable {
         File file = new File(path);
         if (file.exists()) {
             url = file.toURI().toURL();
-        }
-        else {
+        } else {
             url = new URL(path);
         }
         ImageIcon icon = new ImageIcon(url);

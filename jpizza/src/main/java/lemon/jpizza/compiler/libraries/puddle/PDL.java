@@ -13,17 +13,13 @@ public class PDL extends JPExtension {
     public static Map<Integer, ServerPDL> servers = new HashMap<>();
     public static Map<Integer, ClientPDL> clients = new HashMap<>();
 
-    @Override
-    public String name() {
-        return "pdl";
-    }
-
     public PDL(VM vm) {
         super(vm);
     }
 
-    interface IOMethod {
-        NativeResult call(Value[] args) throws IOException;
+    @Override
+    public String name() {
+        return "pdl";
     }
 
     private void iofunc(String name, IOMethod method, List<String> argTypes) {
@@ -36,20 +32,12 @@ public class PDL extends JPExtension {
         }, argTypes);
     }
 
-    interface ClientMethod {
-        NativeResult call(ClientPDL client) throws IOException;
-    }
-
     NativeResult asClient(int id, ClientMethod method) throws IOException {
         ClientPDL client = clients.get(id);
         if (client == null) {
             return Err("Client", "No such client");
         }
         return method.call(client);
-    }
-
-    interface ServerMethod {
-        NativeResult call(ServerPDL server) throws IOException;
     }
 
     NativeResult asServer(int id, ServerMethod method) throws IOException {
@@ -96,5 +84,17 @@ public class PDL extends JPExtension {
             int id = args[0].asNumber().intValue();
             return asServer(id, server -> Ok(server.accept()));
         }, Collections.singletonList("num"));
+    }
+
+    interface IOMethod {
+        NativeResult call(Value[] args) throws IOException;
+    }
+
+    interface ClientMethod {
+        NativeResult call(ClientPDL client) throws IOException;
+    }
+
+    interface ServerMethod {
+        NativeResult call(ServerPDL server) throws IOException;
     }
 }

@@ -1,13 +1,12 @@
 package lemon.jpizza.compiler.libraries.pretzel;
 
-import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
-
+import com.sun.net.httpserver.HttpHandler;
 import lemon.jpizza.Shell;
-import lemon.jpizza.compiler.values.functions.JClosure;
-import lemon.jpizza.compiler.vm.VM;
 import lemon.jpizza.compiler.values.Value;
+import lemon.jpizza.compiler.values.functions.JClosure;
 import lemon.jpizza.compiler.values.functions.NativeResult;
+import lemon.jpizza.compiler.vm.VM;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -89,7 +88,7 @@ public class Handle implements HttpHandler {
     private void handleResponse(HttpExchange exchange, Map<Value, Value> data) throws IOException {
         OutputStream outputStream = exchange.getResponseBody();
 
-        NativeResult result = VM.Run(handle, new Value[]{ new Value(data) });
+        NativeResult result = VM.Run(handle, new Value[]{new Value(data)});
         if (!result.ok()) {
             logError(exchange, outputStream, result);
             return;
@@ -107,8 +106,7 @@ public class Handle implements HttpHandler {
         for (Map.Entry<Value, Value> entry : response.entrySet()) {
             if (entry.getKey().isString && entry.getKey().asString().equals("code")) {
                 code = entry.getValue();
-            }
-            else if (entry.getKey().isString && entry.getKey().asString().equals("header")) {
+            } else if (entry.getKey().isString && entry.getKey().asString().equals("header")) {
                 header = entry.getValue();
             }
         }

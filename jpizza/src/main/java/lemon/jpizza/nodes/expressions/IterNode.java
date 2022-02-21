@@ -1,8 +1,8 @@
 package lemon.jpizza.nodes.expressions;
 
 import lemon.jpizza.JPType;
-import lemon.jpizza.nodes.Node;
 import lemon.jpizza.Token;
+import lemon.jpizza.nodes.Node;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +20,8 @@ public class IterNode extends Node {
         this.body_node = body_node;
         this.retnull = retnull;
 
-        pos_start = var_name_tok.pos_start.copy(); pos_end = body_node.pos_end.copy();
+        pos_start = var_name_tok.pos_start.copy();
+        pos_end = body_node.pos_end.copy();
         jptype = JPType.Iter;
     }
 

@@ -5,9 +5,9 @@ import lemon.jpizza.cases.Case;
 import lemon.jpizza.cases.ElseCase;
 import lemon.jpizza.errors.Error;
 import lemon.jpizza.errors.Tip;
+import lemon.jpizza.nodes.Node;
 import lemon.jpizza.nodes.definitions.*;
 import lemon.jpizza.nodes.expressions.*;
-import lemon.jpizza.nodes.Node;
 import lemon.jpizza.nodes.operations.BinOpNode;
 import lemon.jpizza.nodes.operations.UnaryOpNode;
 import lemon.jpizza.nodes.values.*;
@@ -18,75 +18,6 @@ import lemon.jpizza.results.ParseResult;
 import java.util.*;
 
 public class Parser {
-    Token currentToken;
-    final List<Token> tokens;
-    int tokIdx = -1;
-    int displayTokIdx = -1;
-    int tokount;
-    boolean statement = false;
-
-    enum NamingConvention {
-        CamelCase,
-        ScreamingSnakeCase,
-        PascalCase,
-        SnakeCase,
-        MixedSnakeCase,
-        None
-    }
-
-    static String stringConvention(NamingConvention convention) {
-        switch (convention) {
-            case CamelCase: return "camelCase";
-            case ScreamingSnakeCase: return "SCREAMING_SNAKE_CASE";
-            case PascalCase: return "PascalCase";
-            case SnakeCase: return "snake_case";
-            case MixedSnakeCase: return "Mixed_Snake_Case";
-            default: return "lowercase";
-        }
-    }
-
-    static NamingConvention getConvention(String name) {
-        if (name.equals("_"))
-            return NamingConvention.None;
-
-        int uppercase = 0;
-        int lowercase = 0;
-
-        for (char c: name.toCharArray()) {
-            if (!Character.isLetter(c)) continue;
-            
-            if ('A' <= c && c <= 'Z')
-                uppercase++;
-            else
-                lowercase++;
-        }
-
-        if (name.contains("_")) {
-            if (uppercase == 0)
-                return NamingConvention.SnakeCase;
-            else if (lowercase == 0 && uppercase > 0)
-                return NamingConvention.ScreamingSnakeCase;
-            else
-                return NamingConvention.MixedSnakeCase;
-        }
-        else if (lowercase == 0 && uppercase > 1)
-            return NamingConvention.ScreamingSnakeCase;
-        else if ('A' <= name.charAt(0) && name.charAt(0) <= 'Z')
-            return NamingConvention.PascalCase;
-        else if (uppercase > 0)
-            return NamingConvention.CamelCase;
-
-        return NamingConvention.None;
-    }
-
-    static boolean conventionMatches(NamingConvention a, NamingConvention b) {
-        if (b == NamingConvention.ScreamingSnakeCase || b == NamingConvention.PascalCase)
-            return a == b;
-        if (a == NamingConvention.None || b == NamingConvention.None)
-            return true;
-        return a == b;
-    }
-
     static final List<String> declKeywords = Arrays.asList(
             "static",
             "stc",
@@ -118,15 +49,93 @@ public class Parser {
             "call",
             "init"
     );
-
-    public interface L<T> {
-        ParseResult<T> execute();
-    }
-
+    static final List<TokenType> binRefOps = Arrays.asList(TokenType.PlusEquals, TokenType.MinusEquals, TokenType.StarEquals, TokenType.SlashEquals, TokenType.CaretEquals);
+    static final List<TokenType> unRefOps = Arrays.asList(TokenType.PlusPlus, TokenType.MinusMinus);
+    final List<Token> tokens;
+    Token currentToken;
+    int tokIdx = -1;
+    int displayTokIdx = -1;
+    int tokount;
+    boolean statement = false;
     public Parser(List<Token> Tokens) {
         tokens = Tokens;
         tokount = Tokens.size();
         advance();
+    }
+
+    static String stringConvention(NamingConvention convention) {
+        switch (convention) {
+            case CamelCase:
+                return "camelCase";
+            case ScreamingSnakeCase:
+                return "SCREAMING_SNAKE_CASE";
+            case PascalCase:
+                return "PascalCase";
+            case SnakeCase:
+                return "snake_case";
+            case MixedSnakeCase:
+                return "Mixed_Snake_Case";
+            default:
+                return "lowercase";
+        }
+    }
+
+    static NamingConvention getConvention(String name) {
+        if (name.equals("_"))
+            return NamingConvention.None;
+
+        int uppercase = 0;
+        int lowercase = 0;
+
+        for (char c : name.toCharArray()) {
+            if (!Character.isLetter(c)) continue;
+
+            if ('A' <= c && c <= 'Z')
+                uppercase++;
+            else
+                lowercase++;
+        }
+
+        if (name.contains("_")) {
+            if (uppercase == 0)
+                return NamingConvention.SnakeCase;
+            else if (lowercase == 0 && uppercase > 0)
+                return NamingConvention.ScreamingSnakeCase;
+            else
+                return NamingConvention.MixedSnakeCase;
+        } else if (lowercase == 0 && uppercase > 1)
+            return NamingConvention.ScreamingSnakeCase;
+        else if ('A' <= name.charAt(0) && name.charAt(0) <= 'Z')
+            return NamingConvention.PascalCase;
+        else if (uppercase > 0)
+            return NamingConvention.CamelCase;
+
+        return NamingConvention.None;
+    }
+
+    static boolean conventionMatches(NamingConvention a, NamingConvention b) {
+        if (b == NamingConvention.ScreamingSnakeCase || b == NamingConvention.PascalCase)
+            return a == b;
+        if (a == NamingConvention.None || b == NamingConvention.None)
+            return true;
+        return a == b;
+    }
+
+    static void matchConvention(Token tok, String name, NamingConvention convention) {
+        NamingConvention tokenCase = getConvention(tok.value.toString());
+        if (!conventionMatches(tokenCase, convention))
+            if (tokenCase != convention) {
+                Shell.logger.tip(new Tip(
+                        tok.pos_start, tok.pos_end,
+                        String.format("%s should have naming convention %s, not %s.",
+                                name, stringConvention(convention), stringConvention(tokenCase)),
+                        "camelCaseLooksLikeThis\n" +
+                                "snake_case_looks_like_this\n" +
+                                "SCREAMING_SNAKE_CASE_LOOKS_LIKE_THIS\n" +
+                                "PascalCaseLooksLikeThis\n" +
+                                "Mixed_Snake_Case_Looks_Like_This\n"
+                ).asString());
+            }
     }
 
     public void advance() {
@@ -149,6 +158,7 @@ public class Parser {
         tokIdx -= amount;
         updateTok();
     }
+
     public void reverse() {
         reverse(1);
     }
@@ -160,17 +170,8 @@ public class Parser {
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected '+', '-', '*', '^', or '/'"
             ));
-        } return res;
-    }
-
-    private static class TokenMatcher {
-        TokenType type;
-        String value;
-
-        public TokenMatcher(TokenType type, String value) {
-            this.type = type;
-            this.value = value;
         }
+        return res;
     }
 
     public ParseResult<Node> statements(TokenType end) {
@@ -205,10 +206,11 @@ public class Parser {
                 moreStatements = false;
             }
 
-            for (TokenMatcher matcher: tks) if (currentToken.type == matcher.type && (matcher.value == null || matcher.value.equals(currentToken.value))) {
-                moreStatements = false;
-                break;
-            }
+            for (TokenMatcher matcher : tks)
+                if (currentToken.type == matcher.type && (matcher.value == null || matcher.value.equals(currentToken.value))) {
+                    moreStatements = false;
+                    break;
+                }
             if (!moreStatements)
                 break;
 
@@ -230,7 +232,8 @@ public class Parser {
                     prevStatement.pos_start,
                     prevStatement.pos_end
             ));
-        } advance();
+        }
+        advance();
         return res.success(new BodyNode(statements));
     }
 
@@ -254,28 +257,23 @@ public class Parser {
                     return res;
             }
             return res.success(new ReturnNode(expr, pos_start, currentToken.pos_end.copy()));
-        }
-        else if (currentToken.matches(TokenType.Keyword, "continue")) {
+        } else if (currentToken.matches(TokenType.Keyword, "continue")) {
             res.registerAdvancement();
             advance();
             return res.success(new ContinueNode(pos_start, currentToken.pos_end.copy()));
-        }
-        else if (currentToken.matches(TokenType.Keyword, "break")) {
+        } else if (currentToken.matches(TokenType.Keyword, "break")) {
             res.registerAdvancement();
             advance();
             return res.success(new BreakNode(pos_start, currentToken.pos_end.copy()));
-        }
-        else if (currentToken.matches(TokenType.Keyword, "pass")) {
+        } else if (currentToken.matches(TokenType.Keyword, "pass")) {
             res.registerAdvancement();
             advance();
             return res.success(new PassNode(pos_start, currentToken.pos_end.copy()));
-        }
-        else if (currentToken.type == TokenType.LeftBrace) {
+        } else if (currentToken.type == TokenType.LeftBrace) {
             Node statements = res.register(block());
             if (res.error != null) return res;
             return res.success(new ScopeNode(null, statements));
-        }
-        else if (currentToken.type == TokenType.Keyword) switch (currentToken.value.toString()) {
+        } else if (currentToken.type == TokenType.Keyword) switch (currentToken.value.toString()) {
             case "for": {
                 Node forExpr = res.register(this.forExpr());
                 if (res.error != null)
@@ -422,7 +420,9 @@ public class Parser {
         return res.success(expr);
     }
 
-    public ParseResult<Token> extractVarTok() { return extractVarTok(false); }
+    public ParseResult<Token> extractVarTok() {
+        return extractVarTok(false);
+    }
 
     public ParseResult<Token> extractVarTok(boolean screaming) {
         ParseResult<Token> res = new ParseResult<>();
@@ -433,7 +433,7 @@ public class Parser {
                     "Expected identifier"
             ));
         matchConvention(currentToken, "Variable name", screaming ? NamingConvention.ScreamingSnakeCase
-                                                                       : NamingConvention.CamelCase);
+                : NamingConvention.CamelCase);
 
         Token var_name = currentToken;
         res.registerAdvancement();
@@ -441,7 +441,9 @@ public class Parser {
         return res.success(var_name);
     }
 
-    public ParseResult<Node> chainExpr() { return binOp(this::compExpr, Collections.singletonList(TokenType.Colon)); }
+    public ParseResult<Node> chainExpr() {
+        return binOp(this::compExpr, Collections.singletonList(TokenType.Colon));
+    }
 
     public ParseResult<Token> buildTypeTok() {
         List<String> type = new ArrayList<>();
@@ -518,7 +520,8 @@ public class Parser {
             }
             type.add(currentToken.asString());
             end = currentToken.pos_end;
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
         }
 
         return res.success(new Token(TokenType.Type, type, start, end));
@@ -530,7 +533,8 @@ public class Parser {
         ParseResult<Node> res = new ParseResult<>();
         List<String> type = Collections.singletonList("any");
         if (currentToken.matches(TokenType.Keyword, "attr")) {
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
             Token var_name = res.register(extractVarTok());
             if (res.error != null) return res;
 
@@ -548,16 +552,17 @@ public class Parser {
             if (res.error != null)
                 return res;
             return res.success(new AttrAssignNode(var_name, expr));
-        }
-        else if (currentToken.type == TokenType.Keyword && varWords.contains(currentToken.value.toString())) {
+        } else if (currentToken.type == TokenType.Keyword && varWords.contains(currentToken.value.toString())) {
             boolean locked = constWords.contains(currentToken.value.toString());
 
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
             if (currentToken.type == TokenType.LeftBrace) {
                 // Destructure
                 List<Token> destructs = new ArrayList<>();
 
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
 
                 do {
                     if (currentToken.type != TokenType.Identifier) return res.failure(Error.InvalidSyntax(
@@ -574,13 +579,15 @@ public class Parser {
                         currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                         "Expected '}'"
                 ));
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
 
                 if (currentToken.type != TokenType.FatArrow) return res.failure(Error.ExpectedCharError(
                         currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                         "Expected '=>'"
                 ));
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
 
                 Node destructed = res.register(statement());
                 if (res.error != null) return res;
@@ -605,17 +612,20 @@ public class Parser {
                     var_name = res.register(expectIdentifier("Variable name", NamingConvention.CamelCase));
                     if (res.error != null) return res;
                     varNames.add(new VarAssignNode(var_name, nll).setType(type));
-                    res.registerAdvancement(); advance();
+                    res.registerAdvancement();
+                    advance();
                 } while (currentToken.type == TokenType.Comma);
                 return res.success(new BodyNode(varNames));
             }
 
             if (currentToken.type == TokenType.LeftBracket) {
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
                 boolean neg = false;
                 if (currentToken.type == TokenType.Minus) {
                     neg = true;
-                    res.registerAdvancement(); advance();
+                    res.registerAdvancement();
+                    advance();
                 }
                 if (currentToken.type != TokenType.Int) return res.failure(Error.InvalidSyntax(
                         currentToken.pos_start, currentToken.pos_end,
@@ -623,13 +633,16 @@ public class Parser {
                 ));
                 min = 0;
                 max = ((Double) currentToken.value).intValue() * (neg ? -1 : 1);
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
                 if (currentToken.type == TokenType.Pipe) {
-                    res.registerAdvancement(); advance();
+                    res.registerAdvancement();
+                    advance();
                     neg = false;
                     if (currentToken.type == TokenType.Minus) {
                         neg = true;
-                        res.registerAdvancement(); advance();
+                        res.registerAdvancement();
+                        advance();
                     }
                     if (currentToken.type != TokenType.Int) return res.failure(Error.InvalidSyntax(
                             currentToken.pos_start, currentToken.pos_end,
@@ -637,17 +650,20 @@ public class Parser {
                     ));
                     min = max;
                     max = ((Double) currentToken.value).intValue() * (neg ? -1 : 1);
-                    res.registerAdvancement(); advance();
+                    res.registerAdvancement();
+                    advance();
                 }
                 if (currentToken.type != TokenType.RightBracket) return res.failure(Error.ExpectedCharError(
                         currentToken.pos_start, currentToken.pos_end,
                         "Expected ']'"
                 ));
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
             }
 
             if (currentToken.type.equals(TokenType.Hash) || currentToken.type.equals(TokenType.Colon)) {
-                advance(); res.registerAdvancement();
+                advance();
+                res.registerAdvancement();
                 Token typeTok = res.register(buildTypeTok());
                 if (res.error != null) return res;
                 type = (List<String>) typeTok.value;
@@ -661,10 +677,10 @@ public class Parser {
                 return res.success(new VarAssignNode(
                         var_name, new NullNode(new Token(
                         TokenType.Identifier,
-                                        "null",
-                                        currentToken.pos_start.copy(),
-                                        currentToken.pos_end.copy()
-                                ))
+                        "null",
+                        currentToken.pos_start.copy(),
+                        currentToken.pos_end.copy()
+                ))
                 ).setType(type));
 
             res.registerAdvancement();
@@ -675,24 +691,25 @@ public class Parser {
             return res.success(new VarAssignNode(var_name, expr, locked)
                     .setType(type)
                     .setRange(min, max));
-        }
-        else if (currentToken.matches(TokenType.Keyword, "let")) {
+        } else if (currentToken.matches(TokenType.Keyword, "let")) {
             Token ident = res.register(expectIdentifier("Variable name", NamingConvention.CamelCase));
             if (res.error != null) return res;
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
             if (currentToken.type != TokenType.FatArrow) return res.failure(Error.ExpectedCharError(
                     currentToken.pos_start, currentToken.pos_end,
                     "Expected '=>'"
             ));
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
 
             Node expr = res.register(this.statement());
             if (res.error != null) return res;
 
             return res.success(new LetNode(ident, expr));
-        }
-        else if (currentToken.matches(TokenType.Keyword, "cal")) {
-            res.registerAdvancement(); advance();
+        } else if (currentToken.matches(TokenType.Keyword, "cal")) {
+            res.registerAdvancement();
+            advance();
             Token var_name = res.register(extractVarTok());
             if (res.error != null) return res;
 
@@ -708,8 +725,7 @@ public class Parser {
             if (res.error != null)
                 return res;
             return res.success(new DynAssignNode(var_name, expr));
-        }
-        else if (currentToken.type.equals(TokenType.Identifier)) {
+        } else if (currentToken.type.equals(TokenType.Identifier)) {
             Token var_tok = currentToken;
             advance();
             res.registerAdvancement();
@@ -728,11 +744,21 @@ public class Parser {
                     return res;
                 TokenType op = null;
                 switch (op_tok.type) {
-                    case CaretEquals: op = TokenType.Caret; break;
-                    case PlusEquals: op = TokenType.Plus; break;
-                    case StarEquals: op = TokenType.Star; break;
-                    case SlashEquals: op = TokenType.Slash; break;
-                    case MinusEquals: op = TokenType.Minus; break;
+                    case CaretEquals:
+                        op = TokenType.Caret;
+                        break;
+                    case PlusEquals:
+                        op = TokenType.Plus;
+                        break;
+                    case StarEquals:
+                        op = TokenType.Star;
+                        break;
+                    case SlashEquals:
+                        op = TokenType.Slash;
+                        break;
+                    case MinusEquals:
+                        op = TokenType.Minus;
+                        break;
                 }
                 return res.success(new VarAssignNode(var_tok, new BinOpNode(
                         new VarAccessNode(var_tok),
@@ -750,7 +776,8 @@ public class Parser {
                 ), false).setDefining(false));
             }
             if (currentToken.type.equals(TokenType.FatArrow)) {
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
                 Node value = res.register(statement());
                 if (res.error != null) return res;
                 return res.success(new VarAssignNode(var_tok, value, false, 1));
@@ -777,40 +804,25 @@ public class Parser {
             if (res.error != null)
                 return res;
             return res.success(new UnaryOpNode(tok.type, factor));
-        } return pow();
+        }
+        return pow();
     }
 
     public ParseResult<Token> expectIdentifier() {
-        return expectIdentifier("Identifier", NamingConvention.None); 
-    }
-
-    static void matchConvention(Token tok, String name, NamingConvention convention) {
-        NamingConvention tokenCase = getConvention(tok.value.toString());
-        if (!conventionMatches(tokenCase, convention))
-            if (tokenCase != convention) {
-                Shell.logger.tip(new Tip(
-                    tok.pos_start, tok.pos_end,
-                    String.format("%s should have naming convention %s, not %s.",
-                                  name, stringConvention(convention), stringConvention(tokenCase)),
-"camelCaseLooksLikeThis\n" +
-"snake_case_looks_like_this\n"  +
-"SCREAMING_SNAKE_CASE_LOOKS_LIKE_THIS\n" +
-"PascalCaseLooksLikeThis\n" +
-"Mixed_Snake_Case_Looks_Like_This\n"
-                ).asString());
-            }
+        return expectIdentifier("Identifier", NamingConvention.None);
     }
 
     public ParseResult<Token> expectIdentifier(String name, NamingConvention convention) {
         ParseResult<Token> res = new ParseResult<>();
-        advance(); res.registerAdvancement();
+        advance();
+        res.registerAdvancement();
         if (!currentToken.type.equals(TokenType.Identifier)) return res.failure(Error.InvalidSyntax(
                 currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                 String.format("Expected %s", name.toLowerCase())
-        )); 
-        
+        ));
+
         matchConvention(currentToken, name, convention);
-        
+
         return res.success(currentToken);
     }
 
@@ -818,11 +830,13 @@ public class Parser {
         ParseResult<Node> res = new ParseResult<>();
         Token useToken = res.register(expectIdentifier());
         if (res.error != null) return res;
-        advance(); res.registerAdvancement();
+        advance();
+        res.registerAdvancement();
         List<Token> args = new ArrayList<>();
         while (currentToken.type.equals(TokenType.Identifier)) {
             args.add(currentToken);
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
         }
         return res.success(new UseNode(useToken, args));
     }
@@ -846,7 +860,8 @@ public class Parser {
             if (res.error != null) return res;
 
             return res.success(new UnaryOpNode(opToken.type, expr));
-        } return byteExpr();
+        }
+        return byteExpr();
     }
 
     public ParseResult<Node> byteExpr() {
@@ -953,97 +968,98 @@ public class Parser {
             else if (fn.jptype == JPType.Decorator)
                 name = ((DecoratorNode) fn).name;
             else return res.failure(Error.InvalidSyntax(
-                    fn.pos_start.copy(), fn.pos_end.copy(),
-                    "Object is not decorable"
-            ));
+                        fn.pos_start.copy(), fn.pos_end.copy(),
+                        "Object is not decorable"
+                ));
             return res.success(new DecoratorNode(decorator, fn, name));
-        }
-        else if (Arrays.asList(TokenType.Int, TokenType.Float).contains(tok.type)) {
-            res.registerAdvancement(); advance();
+        } else if (Arrays.asList(TokenType.Int, TokenType.Float).contains(tok.type)) {
+            res.registerAdvancement();
+            advance();
             if (currentToken.type == TokenType.Identifier) {
                 if (currentToken.value.toString().startsWith("x") && tok.value.equals(0.0) && tok.type.equals(TokenType.Int)) {
                     try {
                         Token hexTk = currentToken;
-                        res.registerAdvancement(); advance();
+                        res.registerAdvancement();
+                        advance();
                         int hexForm = Integer.parseInt(hexTk.value.toString().substring(1), 16);
                         return res.success(new NumberNode(hexForm, hexTk.pos_start, hexTk.pos_end));
-                    } catch (NumberFormatException ignored) {}
+                    } catch (NumberFormatException ignored) {
+                    }
                 }
                 Node identifier = new VarAccessNode(currentToken);
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
                 return res.success(new BinOpNode(
                         new NumberNode(tok),
                         TokenType.Star,
                         identifier
                 ));
-            }
-            else if (currentToken.type == TokenType.LeftParen) {
+            } else if (currentToken.type == TokenType.LeftParen) {
                 // 3(1 + 2) = 3 * (1 + 2)
                 Node node = new NumberNode(tok);
                 while (currentToken.type == TokenType.LeftParen) {
-                    res.registerAdvancement(); advance();
+                    res.registerAdvancement();
+                    advance();
                     Node expr = res.register(expr());
                     if (res.error != null) return res;
                     if (currentToken.type != TokenType.RightParen) return res.failure(Error.ExpectedCharError(
                             currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                             "Expected ')' to close expression"
                     ));
-                    res.registerAdvancement(); advance();
+                    res.registerAdvancement();
+                    advance();
                     node = new BinOpNode(node, TokenType.Star, expr);
                 }
                 return res.success(node);
             }
             return res.success(new NumberNode(tok));
-        }
-        else if (tok.type.equals(TokenType.String)) {
+        } else if (tok.type.equals(TokenType.String)) {
             if (((Pair<String, Boolean>) tok.value).b) {
                 Node val = res.register(formatStringExpr());
                 if (res.error != null) return res;
                 return res.success(val);
             }
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
             return res.success(new StringNode(tok));
-        }
-        else if (tok.type.equals(TokenType.Identifier)) {
-            res.registerAdvancement(); advance();
+        } else if (tok.type.equals(TokenType.Identifier)) {
+            res.registerAdvancement();
+            advance();
             if (currentToken.type.equals(TokenType.Equal)) return res.failure(Error.ExpectedCharError(
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Should be '=>'"
             ));
             return res.success(new VarAccessNode(tok));
-        }
-        else if (tok.type.equals(TokenType.Boolean)) {
-            res.registerAdvancement(); advance();
+        } else if (tok.type.equals(TokenType.Boolean)) {
+            res.registerAdvancement();
+            advance();
             return res.success(new BooleanNode(tok));
-        }
-        else if (tok.type.equals(TokenType.QuestionMark)) {
+        } else if (tok.type.equals(TokenType.QuestionMark)) {
             Node queryExpr = res.register(this.queryExpr());
             if (res.error != null)
                 return res;
             return res.success(queryExpr);
-        }
-        else if (tok.type.equals(TokenType.LeftBracket)) {
+        } else if (tok.type.equals(TokenType.LeftBracket)) {
             Node listExpr = res.register(this.listExpr());
             if (res.error != null)
                 return res;
             return res.success(listExpr);
-        }
-        else if (tok.type.equals(TokenType.LeftBrace)) {
+        } else if (tok.type.equals(TokenType.LeftBrace)) {
             Node dictExpr = res.register(this.dictExpr());
             if (res.error != null)
                 return res;
             return res.success(dictExpr);
-        }
-        else if (tok.type.equals(TokenType.LeftParen)) {
-            res.registerAdvancement(); advance();
+        } else if (tok.type.equals(TokenType.LeftParen)) {
+            res.registerAdvancement();
+            advance();
             Node expr = res.register(this.expr());
             if (res.error != null)
                 return res;
             if (currentToken.type.equals(TokenType.RightParen)) {
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
                 return res.success(expr);
-            }
-            else
+            } else
                 return res.failure(Error.ExpectedCharError(
                         currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                         "Expected ')'"
@@ -1061,15 +1077,16 @@ public class Parser {
             ParseResult<Node> res = new ParseResult<>();
 
             prefixToken = currentToken;
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
 
             Node expr = res.register(refExpr());
             if (res.error != null) return res;
-            
+
             if (prefixToken.type == TokenType.Star) return res.success(new DerefNode(expr));
             else return res.success(new RefNode(expr));
         }
-    
+
         return index();
     }
 
@@ -1087,8 +1104,7 @@ public class Parser {
             if (current == '!' && next == '$') {
                 sb.append("$");
                 i++;
-            }
-            else if (current == '$' && next == '{') {
+            } else if (current == '$' && next == '{') {
                 node = new BinOpNode(node, addToken,
                         new StringNode(new Token(TokenType.String, new Pair<>(sb.toString(), false),
                                 tok.pos_start, tok.pos_end)));
@@ -1115,13 +1131,13 @@ public class Parser {
                 Node r = res.register(new Parser(ts.a).statement());
                 if (res.error != null) return res;
                 node = new BinOpNode(node, addToken, r);
-            }
-            else {
+            } else {
                 sb.append(current);
             }
         }
 
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
         return res.success(new BinOpNode(node, addToken,
                 new StringNode(new Token(TokenType.String, new Pair<>(sb.toString(), false), tok.pos_start, tok.pos_end))));
     }
@@ -1131,14 +1147,17 @@ public class Parser {
         if (!currentToken.matches(TokenType.Keyword, "throw")) return res.failure(Error.InvalidSyntax(
                 currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                 "Expected 'throw'"
-        )); res.registerAdvancement(); advance();
+        ));
+        res.registerAdvancement();
+        advance();
 
         Node first = res.register(this.expr());
         if (res.error != null)
             return res;
 
         if (currentToken.type == TokenType.Comma) {
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
 
             Node second = res.register(this.expr());
             if (res.error != null)
@@ -1165,7 +1184,8 @@ public class Parser {
 
         Token identifier = res.register(expectIdentifier("Struct", NamingConvention.PascalCase));
         if (res.error != null) return res;
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         if (currentToken.type != TokenType.LeftBrace) return res.failure(Error.ExpectedCharError(
                 currentToken.pos_start.copy(), currentToken.pos_end.copy(),
@@ -1185,7 +1205,8 @@ public class Parser {
                     new VarAccessNode(currentToken)
             ));
 
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
         } while (currentToken.type == TokenType.Comma);
 
         Position end = currentToken.pos_end.copy();
@@ -1195,7 +1216,8 @@ public class Parser {
                 "Expected '}'"
         ));
         endLine(1);
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         return res.success(new ClassDefNode(
                 identifier,
@@ -1215,36 +1237,6 @@ public class Parser {
 
     }
 
-    public static class EnumChild {
-        Token token;
-        List<String> params;
-        List<List<String>> types;
-        List<String> generics;
-
-        public EnumChild(Token token, List<String> params, List<List<String>> types, List<String> generics) {
-            this.token = token;
-            this.params = params;
-            this.types = types;
-            this.generics = generics;
-        }
-
-        public List<List<String>> types() {
-            return types;
-        }
-
-        public List<String> params() {
-            return params;
-        }
-
-        public List<String> generics() {
-            return generics;
-        }
-
-        public Token token() {
-            return token;
-        }
-    }
-
     public ParseResult<Node> enumExpr() {
         ParseResult<Node> res = new ParseResult<>();
 
@@ -1255,11 +1247,13 @@ public class Parser {
                 currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                 "Expected 'enum'"
         ));
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         boolean pub = currentToken.matches(TokenType.Keyword, "pub");
         if (pub) {
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
         }
 
         if (currentToken.type != TokenType.Identifier) return res.failure(Error.InvalidSyntax(
@@ -1270,26 +1264,30 @@ public class Parser {
         matchConvention(currentToken, "Enum", NamingConvention.PascalCase);
 
         name = currentToken;
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         if (!currentToken.type.equals(TokenType.LeftBrace))
             return res.failure(Error.ExpectedCharError(
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected '{'"
             ));
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         while (currentToken.type == TokenType.Identifier) {
             Token token = currentToken;
             matchConvention(token, "Enum child", NamingConvention.PascalCase);
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
 
             List<String> generics = new ArrayList<>();
             if (currentToken.type == TokenType.LeftParen) {
                 do {
                     Token ident = res.register(expectIdentifier("Generic type", NamingConvention.PascalCase));
                     if (res.error != null) return res;
-                    res.registerAdvancement(); advance();
+                    res.registerAdvancement();
+                    advance();
                     generics.add(ident.value.toString());
                 } while (currentToken.type == TokenType.Comma);
 
@@ -1297,7 +1295,8 @@ public class Parser {
                         currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                         "Expected ')'"
                 ));
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
             }
 
             List<String> params = new ArrayList<>();
@@ -1307,15 +1306,16 @@ public class Parser {
                     Token tok = res.register(expectIdentifier("Parameter", NamingConvention.CamelCase));
                     if (res.error != null) return res;
                     params.add((String) tok.value);
-                    res.registerAdvancement(); advance();
+                    res.registerAdvancement();
+                    advance();
 
                     if (currentToken.type == TokenType.Colon) {
-                        res.registerAdvancement(); advance();
+                        res.registerAdvancement();
+                        advance();
                         tok = res.register(buildTypeTok());
                         if (res.error != null) return res;
                         types.add((List<String>) tok.value);
-                    }
-                    else {
+                    } else {
                         types.add(Collections.singletonList("any"));
                     }
 
@@ -1324,14 +1324,16 @@ public class Parser {
                         currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                         "Expected '}'"
                 ));
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
             }
 
             if (currentToken.type != TokenType.Comma) return res.failure(Error.ExpectedCharError(
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected comma"
             ));
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
             children.add(new EnumChild(token, params, types, generics));
         }
 
@@ -1341,7 +1343,8 @@ public class Parser {
                     "Expected '}'"
             ));
         endLine(1);
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         return res.success(new EnumNode(name, children, pub));
     }
@@ -1355,8 +1358,9 @@ public class Parser {
         if (!currentToken.matches(TokenType.Keyword, "switch")) return res.failure(Error.InvalidSyntax(
                 currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                 "Expected switch"
-            ));
-        res.registerAdvancement(); advance();
+        ));
+        res.registerAdvancement();
+        advance();
 
         Node ref;
         if (!currentToken.type.equals(TokenType.LeftParen))
@@ -1364,7 +1368,8 @@ public class Parser {
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected '('"
             ));
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
         ref = res.register(expr());
         if (res.error != null) return res;
         if (!currentToken.type.equals(TokenType.RightParen))
@@ -1372,32 +1377,35 @@ public class Parser {
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected ')'"
             ));
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         if (!currentToken.type.equals(TokenType.LeftBrace))
             return res.failure(Error.ExpectedCharError(
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected '{'"
             ));
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         boolean def;
         Node condition, body;
         while (currentToken.matches(TokenType.Keyword, "case") || currentToken.matches(TokenType.Keyword, "default")) {
             def = currentToken.matches(TokenType.Keyword, "default");
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
 
             if (!def) {
                 condition = res.register(compExpr());
                 if (res.error != null) return res;
-            }
-            else condition = null;
+            } else condition = null;
 
             if (currentToken.type != TokenType.Colon) return res.failure(Error.ExpectedCharError(
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected ':'"
             ));
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
 
             body = res.register(statements(Arrays.asList(
                     new TokenMatcher(TokenType.RightBrace, null),
@@ -1418,30 +1426,32 @@ public class Parser {
                     "Expected '}'"
             ));
         endLine(1);
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         Node swtch = new SwitchNode(ref, cases, elseCase, false);
 
         if (cases.size() < 3) Shell.logger.tip(new Tip(
-            swtch.pos_start, swtch.pos_end,
-            "Switch can be replaced with if-elif-else structure",
-"if (x == 1) {\n" +
-"    println(\"X is 1!\");\n" +
-"} elif (x == 2) {\n" +
-"    println(\"X is two.\");\n" +
-"} else {\n" +
-"    println(\"X is dumb! >:(\");\n" +
-"}"
+                swtch.pos_start, swtch.pos_end,
+                "Switch can be replaced with if-elif-else structure",
+                "if (x == 1) {\n" +
+                        "    println(\"X is 1!\");\n" +
+                        "} elif (x == 2) {\n" +
+                        "    println(\"X is two.\");\n" +
+                        "} else {\n" +
+                        "    println(\"X is dumb! >:(\");\n" +
+                        "}"
         ).asString());
 
         return res.success(swtch);
     }
 
     public ParseResult<Void> expectSemicolon() {
-        if (currentToken.type != TokenType.InvisibleNewline && currentToken.type != TokenType.Newline) return new ParseResult<Void>().failure(Error.ExpectedCharError(
-                currentToken.pos_start.copy(), currentToken.pos_end.copy(),
-                "Expected ';'"
-        ));
+        if (currentToken.type != TokenType.InvisibleNewline && currentToken.type != TokenType.Newline)
+            return new ParseResult<Void>().failure(Error.ExpectedCharError(
+                    currentToken.pos_start.copy(), currentToken.pos_end.copy(),
+                    "Expected ';'"
+            ));
         return new ParseResult<>();
     }
 
@@ -1457,13 +1467,15 @@ public class Parser {
         if (peek(1).type == TokenType.Identifier) do {
             Token ident = res.register(expectIdentifier());
             if (res.error != null) return res;
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
 
             if (currentToken.type != TokenType.Colon) {
                 patterns.put(ident, new VarAccessNode(ident));
                 continue;
             }
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
 
             Node pattern = res.register(this.expr());
             if (res.error != null) return res;
@@ -1471,14 +1483,16 @@ public class Parser {
             patterns.put(ident, pattern);
         } while (currentToken.type == TokenType.Comma);
         else {
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
         }
 
         if (currentToken.type != TokenType.RightParen) return res.failure(Error.ExpectedCharError(
                 currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                 "Expected ')'"
         ));
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         return res.success(new PatternNode(expr, patterns));
     }
@@ -1492,8 +1506,9 @@ public class Parser {
         if (!currentToken.matches(TokenType.Keyword, "match")) return res.failure(Error.InvalidSyntax(
                 currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                 "Expected match"
-            ));
-        res.registerAdvancement(); advance();
+        ));
+        res.registerAdvancement();
+        advance();
 
         Node ref;
         if (!currentToken.type.equals(TokenType.LeftParen))
@@ -1501,7 +1516,8 @@ public class Parser {
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected '('"
             ));
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
         ref = res.register(expr());
         if (res.error != null) return res;
         if (!currentToken.type.equals(TokenType.RightParen))
@@ -1509,14 +1525,16 @@ public class Parser {
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected ')'"
             ));
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         if (!currentToken.type.equals(TokenType.LeftBrace))
             return res.failure(Error.ExpectedCharError(
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected '{'"
             ));
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         Node body;
         boolean pat, def;
@@ -1527,7 +1545,8 @@ public class Parser {
             List<Node> conditions = new ArrayList<>();
             reverse();
             do {
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
                 Node condition;
                 if (pat) {
                     condition = res.register(atom());
@@ -1536,15 +1555,13 @@ public class Parser {
                         condition = res.register(patternExpr(condition));
                         if (res.error != null) return res;
                     }
-                }
-                else {
+                } else {
                     res.registerAdvancement();
                     advance();
                     if (!def) {
                         condition = res.register(statement());
                         if (res.error != null) return res;
-                    }
-                else condition = null;
+                    } else condition = null;
                 }
                 if (condition != null)
                     conditions.add(condition);
@@ -1554,33 +1571,36 @@ public class Parser {
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected '->'"
             ));
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
 
             body = res.register(statement());
             if (res.error != null) return res;
 
             if (def)
                 elseCase = new ElseCase(body, true);
-            else for (Node condition: conditions)
+            else for (Node condition : conditions)
                 cases.add(new Case(condition, body, true));
             res.register(expectSemicolon());
             if (res.error != null) return res;
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
         }
 
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         Node swtch = new SwitchNode(ref, cases, elseCase, true);
 
         if (elseCase == null) {
             Shell.logger.tip(new Tip(swtch.pos_start, swtch.pos_end,
-                                      "Match statement should have a default branch",
-"match (a) {\n" +
-"    b -> c\n" +
-"    default -> d\n" +
-"    <> This runs in case none of the others match\n" +
-"    <> and helps prevents stray null values.\n" +
-"};").asString());
+                    "Match statement should have a default branch",
+                    "match (a) {\n" +
+                            "    b -> c\n" +
+                            "    default -> d\n" +
+                            "    <> This runs in case none of the others match\n" +
+                            "    <> and helps prevents stray null values.\n" +
+                            "};").asString());
         }
 
         return res.success(swtch);
@@ -1603,34 +1623,37 @@ public class Parser {
                             advance();
 
                             if (currentToken.type == TokenType.DotDot) {
-                                res.registerAdvancement(); advance();
+                                res.registerAdvancement();
+                                advance();
                                 Node internal = res.register(this.expr());
                                 if (res.error != null) return res;
                                 arg_nodes.add(new SpreadNode(internal));
-                            }
-                            else {
+                            } else {
                                 arg_nodes.add(res.register(this.expr()));
                                 if (res.error != null)
                                     return res;
                             }
                         } while (currentToken.type.equals(TokenType.Comma));
-                    }
-                    else {
+                    } else {
                         res.registerAdvancement();
                         advance();
                     }
 
                     if (currentToken.type == TokenType.Backslash) {
-                        Token vk; Node val;
+                        Token vk;
+                        Node val;
                         do {
                             vk = res.register(expectIdentifier());
                             if (res.error != null) return res;
-                            res.registerAdvancement(); advance();
+                            res.registerAdvancement();
+                            advance();
 
                             if (currentToken.type != TokenType.Colon) return res.failure(Error.ExpectedCharError(
                                     currentToken.pos_start, currentToken.pos_end,
                                     "Expected ':'"
-                            )); res.registerAdvancement(); advance();
+                            ));
+                            res.registerAdvancement();
+                            advance();
 
                             val = res.register(this.expr());
                             if (res.error != null) return res;
@@ -1644,9 +1667,9 @@ public class Parser {
                                 currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                                 "Expected ',' or ')'"
                         ));
-                }
-                else {
-                    res.registerAdvancement(); advance();
+                } else {
+                    res.registerAdvancement();
+                    advance();
                 }
                 res.registerAdvancement();
                 advance();
@@ -1662,7 +1685,7 @@ public class Parser {
                     while (currentToken.type == TokenType.Comma) {
                         res.registerAdvancement();
                         advance();
-                        
+
                         r = buildTypeTok();
                         if (r.error != null) return res.failure(r.error);
                         generics.add(res.register(r));
@@ -1671,8 +1694,7 @@ public class Parser {
                         generics = new ArrayList<>();
                         tokIdx = startIndex;
                         updateTok();
-                    }
-                    else {
+                    } else {
                         res.registerAdvancement();
                         advance();
                     }
@@ -1683,25 +1705,28 @@ public class Parser {
                         generics,
                         kwargs
                 );
-            }
-            else {
+            } else {
                 Token tok = res.register(expectIdentifier());
                 if (res.error != null) return res;
-                advance(); res.registerAdvancement();
+                advance();
+                res.registerAdvancement();
                 node = new ClaccessNode(node, tok);
             }
         }
         return res.success(node);
     }
 
-    public ParseResult<Node> index() { return binOp(this::call, Collections.singletonList(TokenType.LeftBracket), this::expr); }
+    public ParseResult<Node> index() {
+        return binOp(this::call, Collections.singletonList(TokenType.LeftBracket), this::expr);
+    }
 
-    public ParseResult<Node> pow() { return binOp(this::refOp, Arrays.asList(TokenType.Caret, TokenType.Percent), this::factor); }
+    public ParseResult<Node> pow() {
+        return binOp(this::refOp, Arrays.asList(TokenType.Caret, TokenType.Percent), this::factor);
+    }
 
-    public ParseResult<Node> refOp() { return binOp(this::refSugars, Collections.singletonList(TokenType.FatArrow)); }
-
-    static final List<TokenType> binRefOps = Arrays.asList(TokenType.PlusEquals, TokenType.MinusEquals, TokenType.StarEquals, TokenType.SlashEquals, TokenType.CaretEquals);
-    static final List<TokenType> unRefOps  = Arrays.asList(TokenType.PlusPlus, TokenType.MinusMinus);
+    public ParseResult<Node> refOp() {
+        return binOp(this::refSugars, Collections.singletonList(TokenType.FatArrow));
+    }
 
     public ParseResult<Node> refSugars() {
         ParseResult<Node> res = new ParseResult<>();
@@ -1712,25 +1737,34 @@ public class Parser {
         while (binRefOps.contains(currentToken.type) || unRefOps.contains(currentToken.type)) {
             if (unRefOps.contains(currentToken.type)) {
                 expr = new BinOpNode(
-                    expr,
+                        expr,
                         TokenType.FatArrow,
-                    new UnaryOpNode(
-                        currentToken.type,
-                        expr
-                    )
+                        new UnaryOpNode(
+                                currentToken.type,
+                                expr
+                        )
                 );
 
                 res.registerAdvancement();
                 advance();
-            }
-            else if (binRefOps.contains(currentToken.type)) {
+            } else if (binRefOps.contains(currentToken.type)) {
                 TokenType opTok = null;
                 switch (currentToken.type) {
-                    case CaretEquals: opTok = TokenType.Caret; break;
-                    case StarEquals: opTok = TokenType.Star; break;
-                    case SlashEquals: opTok = TokenType.Slash; break;
-                    case PlusEquals: opTok = TokenType.Plus; break;
-                    case MinusEquals: opTok = TokenType.Minus; break;
+                    case CaretEquals:
+                        opTok = TokenType.Caret;
+                        break;
+                    case StarEquals:
+                        opTok = TokenType.Star;
+                        break;
+                    case SlashEquals:
+                        opTok = TokenType.Slash;
+                        break;
+                    case PlusEquals:
+                        opTok = TokenType.Plus;
+                        break;
+                    case MinusEquals:
+                        opTok = TokenType.Minus;
+                        break;
                 }
                 res.registerAdvancement();
                 advance();
@@ -1739,23 +1773,27 @@ public class Parser {
                 if (res.error != null) return res;
 
                 expr = new BinOpNode(
-                    expr,
-                        TokenType.FatArrow,
-                    new BinOpNode(
                         expr,
-                        opTok,
-                        right
-                    )
+                        TokenType.FatArrow,
+                        new BinOpNode(
+                                expr,
+                                opTok,
+                                right
+                        )
                 );
             }
         }
-        
+
         return res.success(expr);
     }
 
-    public ParseResult<Node> term() { return binOp(this::factor, Arrays.asList(TokenType.Star, TokenType.Slash)); }
+    public ParseResult<Node> term() {
+        return binOp(this::factor, Arrays.asList(TokenType.Star, TokenType.Slash));
+    }
 
-    public ParseResult<Node> arithExpr() { return binOp(this::term, Arrays.asList(TokenType.Plus, TokenType.Minus)); }
+    public ParseResult<Node> arithExpr() {
+        return binOp(this::term, Arrays.asList(TokenType.Plus, TokenType.Minus));
+    }
 
     public ParseResult<Node> compExpr() {
         ParseResult<Node> res = new ParseResult<>();
@@ -1792,7 +1830,8 @@ public class Parser {
         ParseResult<Node> res = new ParseResult<>();
         if (right_func == null)
             right_func = left_func;
-        Node right; Node left;
+        Node right;
+        Node left;
         left = res.register(left_func.execute());
         if (res.error != null)
             return res;
@@ -1816,30 +1855,9 @@ public class Parser {
                 CallNode call = (CallNode) right;
                 call.argNodes.add(0, left);
                 left = call;
-            }
-            else left = new BinOpNode(left, op_tok, right);
+            } else left = new BinOpNode(left, op_tok, right);
         }
         return res.success(left);
-    }
-
-    private static class ArgData {
-        List<Token> argNameToks;
-        List<Token> argTypeToks;
-        List<Node> defaults;
-        int defaultCount;
-        List<Token> generics;
-        String argname;
-        String kwargname;
-
-        public ArgData(List<Token> argNameToks, List<Token> argTypeToks, List<Node> defaults, int defaultCount, List<Token> generics, String argname, String kwargname) {
-            this.argNameToks = argNameToks;
-            this.argTypeToks = argTypeToks;
-            this.defaults = defaults;
-            this.defaultCount = defaultCount;
-            this.generics = generics;
-            this.argname = argname;
-            this.kwargname = kwargname;
-        }
     }
 
     public ParseResult<ArgData> gatherArgs() {
@@ -1892,8 +1910,7 @@ public class Parser {
                         Token typetok = res.register(buildTypeTok());
                         if (res.error != null) return res;
                         argTypeToks.add(typetok);
-                    }
-                    else argTypeToks.add(new Token(TokenType.Type,
+                    } else argTypeToks.add(new Token(TokenType.Type,
                             Collections.singletonList("any"), currentToken.pos_start, currentToken.pos_end));
                     if (currentToken.type.equals(TokenType.Equal)) {
                         res.registerAdvancement();
@@ -1905,15 +1922,13 @@ public class Parser {
                         defaults.add(val);
                         defaultCount++;
                         optionals = true;
-                    }
-                    else if (optionals) return res.failure(Error.InvalidSyntax(
+                    } else if (optionals) return res.failure(Error.InvalidSyntax(
                             currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                             "Expected default value"
                     ));
 
                 } while (currentToken.type.equals(TokenType.Comma));
-            }
-            else {
+            } else {
                 res.registerAdvancement();
                 advance();
             }
@@ -1921,22 +1936,27 @@ public class Parser {
             if (currentToken.type == TokenType.Backslash) {
                 Token kw = res.register(expectIdentifier("Parameter", NamingConvention.CamelCase));
                 if (res.error != null) return res;
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
                 kwargname = kw.value.toString();
             }
 
             if (!currentToken.type.equals(TokenType.RightAngle)) return res.failure(Error.ExpectedCharError(
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected '>'"
-            )); advance(); res.registerAdvancement();
+            ));
+            advance();
+            res.registerAdvancement();
         }
 
         List<Token> generics = new ArrayList<>();
         if (currentToken.type.equals(TokenType.LeftParen)) {
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
             do {
                 if (currentToken.type == TokenType.Comma) {
-                    res.registerAdvancement(); advance();
+                    res.registerAdvancement();
+                    advance();
                 }
                 if (!currentToken.type.equals(TokenType.Identifier)) return res.failure(Error.InvalidSyntax(
                         currentToken.pos_start.copy(), currentToken.pos_end.copy(),
@@ -1946,7 +1966,8 @@ public class Parser {
                 matchConvention(currentToken, "Generic type", NamingConvention.PascalCase);
 
                 generics.add(currentToken);
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
             } while (currentToken.type == TokenType.Comma);
             if (!currentToken.type.equals(TokenType.RightParen)) return res.failure(Error.ExpectedCharError(
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
@@ -1979,7 +2000,10 @@ public class Parser {
         tokount++;
     }
 
-    public ParseResult<Node> block() { return block(true); }
+    public ParseResult<Node> block() {
+        return block(true);
+    }
+
     public ParseResult<Node> block(boolean vLine) {
         ParseResult<Node> res = new ParseResult<>();
         if (!currentToken.type.equals(TokenType.LeftBrace))
@@ -1988,7 +2012,8 @@ public class Parser {
                     "Expected '{'"
             ));
 
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         Node statements = res.register(this.statements(TokenType.RightBrace));
         if (res.error != null)
@@ -2000,14 +2025,11 @@ public class Parser {
                     "Expected '}'"
             ));
         if (vLine) endLine(1);
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         return res.success(statements);
     }
-
-    // EXPRESSIONS
-
-    // If Parts
 
     public ParseResult<Node> ifExpr() {
         ParseResult<Node> res = new ParseResult<>();
@@ -2016,7 +2038,8 @@ public class Parser {
             return res;
         List<Case> cases = allCases.a;
         ElseCase elseCase = allCases.b;
-        endLine(0); updateTok();
+        endLine(0);
+        updateTok();
         return res.success(new QueryNode(cases, elseCase));
     }
 
@@ -2039,7 +2062,8 @@ public class Parser {
                         currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                         "Expected '('"
                 ));
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
         }
         Node condition = res.register(this.expr());
         if (res.error != null)
@@ -2048,15 +2072,14 @@ public class Parser {
         if (condition.jptype == JPType.Boolean && ((BooleanNode) condition).val) {
             Shell.logger.tip(new Tip(condition.pos_start, condition.pos_end,
                     "Redundant conditional",
-"if (true)\n" +
-"    println(\"This runs no matter what\");")
+                    "if (true)\n" +
+                            "    println(\"This runs no matter what\");")
                     .asString());
-        }
-        else if (condition.jptype == JPType.Boolean) {
+        } else if (condition.jptype == JPType.Boolean) {
             Shell.logger.tip(new Tip(condition.pos_start, condition.pos_end,
                     "Conditional will never run",
-"if (false)\n" +
-"    println(\"Useless!!!\");")
+                    "if (false)\n" +
+                            "    println(\"Useless!!!\");")
                     .asString());
         }
 
@@ -2077,7 +2100,8 @@ public class Parser {
             statements = res.register(this.statement());
             res.register(expectSemicolon());
             if (res.error != null) return res;
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
         }
         if (res.error != null)
             return res;
@@ -2104,12 +2128,12 @@ public class Parser {
                 return res;
             cases = allCases.a;
             elseCase = allCases.b;
-        }
-        else {
+        } else {
             elseCase = res.register(this.elseExpr());
             if (res.error != null)
                 return res;
-        } return res.success(
+        }
+        return res.success(
                 new Pair<>(cases, elseCase)
         );
 
@@ -2124,7 +2148,8 @@ public class Parser {
         ElseCase elseCase = null;
 
         if (currentToken.matches(TokenType.Keyword, "else")) {
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
 
             Node statements;
             if (currentToken.type.equals(TokenType.LeftBrace))
@@ -2133,7 +2158,8 @@ public class Parser {
                 statements = res.register(this.statement());
                 res.register(expectSemicolon());
                 if (res.error != null) return res;
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
             }
             if (res.error != null)
                 return res;
@@ -2143,7 +2169,9 @@ public class Parser {
         return res.success(elseCase);
     }
 
-    // Query
+    // EXPRESSIONS
+
+    // If Parts
 
     public ParseResult<Node> kv() {
         ParseResult<Node> res = new ParseResult<>();
@@ -2151,7 +2179,8 @@ public class Parser {
                 currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                 "Expected ':'"
         ));
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
         Node expr = res.register(expr());
         if (res.error != null) return res;
         return res.success(expr);
@@ -2163,7 +2192,8 @@ public class Parser {
         ElseCase elseCase = null;
 
         L<Node> getStatement = () -> {
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
             Node condition = res.register(compExpr());
             if (res.error != null) return res;
             Node expr_ = res.register(this.kv());
@@ -2187,12 +2217,14 @@ public class Parser {
         }
 
         if (currentToken.type.equals(TokenType.DollarUnderscore)) {
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
             if (!currentToken.type.equals(TokenType.Colon)) return res.failure(Error.ExpectedCharError(
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected ':'"
             ));
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
 
             Node expr = res.register(this.statement());
             if (res.error != null) return res;
@@ -2200,8 +2232,6 @@ public class Parser {
         }
         return res.success(new QueryNode(cases, elseCase));
     }
-
-    // Loops
 
     public ParseResult<Node> forExpr() {
         ParseResult<Node> res = new ParseResult<>();
@@ -2212,7 +2242,8 @@ public class Parser {
                     "Expected 'for'"
             ));
 
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         if (!currentToken.type.equals(TokenType.LeftParen))
             return res.failure(Error.ExpectedCharError(
@@ -2227,11 +2258,12 @@ public class Parser {
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected identifier"
             ));
-        
+
         matchConvention(currentToken, "Variable name", NamingConvention.CamelCase);
 
         Token varName = currentToken;
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         boolean iterating = currentToken.type.equals(TokenType.LeftArrow);
         if (!currentToken.type.equals(TokenType.SkinnyArrow) && !currentToken.type.equals(TokenType.LeftArrow))
@@ -2239,7 +2271,8 @@ public class Parser {
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected weak assignment or iter ('->', '<-')"
             ));
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         if (iterating) {
             Node iterableNode = res.register(getClosing());
@@ -2273,17 +2306,18 @@ public class Parser {
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected ':'"
             ));
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         Node end = res.register(this.expr());
         if (res.error != null) return res;
 
         Node step;
         if (currentToken.type.equals(TokenType.AngleAngle)) {
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
             step = res.register(this.expr());
-        }
-        else step = null;
+        } else step = null;
 
         if (!currentToken.type.equals(TokenType.RightParen))
             return res.failure(Error.ExpectedCharError(
@@ -2325,7 +2359,8 @@ public class Parser {
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected ')'"
             ));
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
         return res.success(condition);
     }
 
@@ -2353,23 +2388,24 @@ public class Parser {
             if (((BooleanNode) condition).val) {
                 Shell.logger.tip(new Tip(condition.pos_start, condition.pos_end,
                         "Can be changed to a generic loop",
-"loop {\n" +
-"    println(\"To infinity and beyond!\");\n" +
-"}")
+                        "loop {\n" +
+                                "    println(\"To infinity and beyond!\");\n" +
+                                "}")
                         .asString());
-            }
-            else {
+            } else {
                 Shell.logger.tip(new Tip(condition.pos_start, condition.pos_end,
                         "Loop will never run",
-"while (false) {\n" +
-"    println(\"Remove me!\");\n" +
-"}")
+                        "while (false) {\n" +
+                                "    println(\"Remove me!\");\n" +
+                                "}")
                         .asString());
             }
         }
 
         return res.success(condition);
     }
+
+    // Query
 
     public ParseResult<Node> doExpr() {
         ParseResult<Node> res = new ParseResult<>();
@@ -2415,8 +2451,7 @@ public class Parser {
             res.registerAdvancement();
             advance();
             condition = new BooleanNode(new Token(TokenType.Boolean, true, loopTok.pos_start, loopTok.pos_end));
-        }
-        else {
+        } else {
             condition = res.register(getWhileCondition());
 
             if (res.error != null) return res;
@@ -2444,7 +2479,7 @@ public class Parser {
 
     }
 
-    // Collections
+    // Loops
 
     public ParseResult<Node> listExpr() {
         ParseResult<Node> res = new ParseResult<>();
@@ -2455,7 +2490,8 @@ public class Parser {
                 currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                 "Expected '['"
         ));
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         if (!currentToken.type.equals(TokenType.RightBracket)) {
             elementNodes.add(res.register(this.expr()));
@@ -2489,7 +2525,9 @@ public class Parser {
         if (!currentToken.type.equals(TokenType.LeftBrace)) return res.failure(Error.ExpectedCharError(
                 currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                 "Expected '{'"
-        )); res.registerAdvancement(); advance();
+        ));
+        res.registerAdvancement();
+        advance();
 
         L<Node> kv = () -> {
             Node key = res.register(compExpr());
@@ -2508,14 +2546,17 @@ public class Parser {
         }
 
         while (currentToken.type.equals(TokenType.Comma)) {
-            advance(); res.registerAdvancement();
+            advance();
+            res.registerAdvancement();
             x = kv.execute();
             if (x != null) return x;
         }
         if (!currentToken.type.equals(TokenType.RightBrace)) return res.failure(Error.ExpectedCharError(
                 currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                 "Expected '}'"
-        )); res.registerAdvancement(); advance();
+        ));
+        res.registerAdvancement();
+        advance();
 
         return res.success(new DictNode(dict, pos_start, currentToken.pos_end.copy()));
     }
@@ -2523,17 +2564,18 @@ public class Parser {
     public ParseResult<Boolean> isCatcher() {
         ParseResult<Boolean> res = new ParseResult<>();
         if (currentToken.type == TokenType.LeftBracket) {
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
             if (currentToken.type != TokenType.RightBracket) return res.failure(Error.ExpectedCharError(
                     currentToken.pos_start, currentToken.pos_end,
                     "Expected ']'"
             ));
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
             return res.success(true);
-        } return res.success(false);
+        }
+        return res.success(false);
     }
-
-    // Executables
 
     public ParseResult<Node> funcDef() {
         ParseResult<Node> res = new ParseResult<>();
@@ -2541,14 +2583,17 @@ public class Parser {
         String tokV = (String) currentToken.value;
         if (!currentToken.type.equals(TokenType.Keyword) && Arrays.asList("fn", "function", "yourmom").contains(tokV))
             return res.failure(Error.InvalidSyntax(
-                currentToken.pos_start.copy(), currentToken.pos_end.copy(),
-                "Expected 'function'"
-        )); advance(); res.registerAdvancement();
+                    currentToken.pos_start.copy(), currentToken.pos_end.copy(),
+                    "Expected 'function'"
+            ));
+        advance();
+        res.registerAdvancement();
 
         boolean async = false;
         if (currentToken.matches(TokenType.Keyword, "async")) {
             async = true;
-            advance(); res.registerAdvancement();
+            advance();
+            res.registerAdvancement();
         }
 
         Token varNameTok = null;
@@ -2560,7 +2605,8 @@ public class Parser {
                 ));
             varNameTok = currentToken;
             matchConvention(varNameTok, "Function name", NamingConvention.CamelCase);
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
         }
 
         ArgData argTKs = res.register(gatherArgs());
@@ -2615,8 +2661,8 @@ public class Parser {
 
                 if (nodeToReturn.jptype == JPType.List && ((ListNode) nodeToReturn).elements.size() == 1) {
                     Shell.logger.tip(new Tip(funcNode.pos_start, funcNode.pos_end,
-                                        "Can be refactored to use arrow syntax", "fn addOne<x> -> x + 1;")
-                                        .asString());
+                            "Can be refactored to use arrow syntax", "fn addOne<x> -> x + 1;")
+                            .asString());
                 }
 
                 return res.success(funcNode);
@@ -2640,28 +2686,30 @@ public class Parser {
         ParseResult<List<String>> res = new ParseResult<>();
         List<String> retype = Collections.singletonList("any");
         if (currentToken.type.equals(TokenType.Equal) ||
-            currentToken.matches(TokenType.Keyword, "yields") ||
-            currentToken.type.equals(TokenType.Colon)) {
-            res.registerAdvancement(); advance();
+                currentToken.matches(TokenType.Keyword, "yields") ||
+                currentToken.type.equals(TokenType.Colon)) {
+            res.registerAdvancement();
+            advance();
             Token etok = res.register(buildTypeTok());
             if (res.error != null) return res;
 
             retype = (List<String>) etok.value;
-        } return res.success(retype);
+        }
+        return res.success(retype);
     }
 
-    private interface AttrGetter {
-        ParseResult<Node> run(Token tok, boolean b1, boolean b2);
-    }
+    // Collections
 
     public ParseResult<Node> classDef() {
         ParseResult<Node> res = new ParseResult<>();
 
         if (currentToken.type != TokenType.Keyword || !classWords.contains(currentToken.value.toString()))
             return res.failure(Error.InvalidSyntax(
-                currentToken.pos_start.copy(), currentToken.pos_end.copy(),
-                "Expected 'recipe', 'class', or 'obj'"
-        )); advance(); res.registerAdvancement();
+                    currentToken.pos_start.copy(), currentToken.pos_end.copy(),
+                    "Expected 'recipe', 'class', or 'obj'"
+            ));
+        advance();
+        res.registerAdvancement();
         if (!currentToken.type.equals(TokenType.Identifier)) return res.failure(Error.InvalidSyntax(
                 currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                 "Expected identifier"
@@ -2670,24 +2718,29 @@ public class Parser {
         matchConvention(currentToken, "Class", NamingConvention.PascalCase);
 
         Token classNameTok = currentToken;
-        res.registerAdvancement(); advance();
+        res.registerAdvancement();
+        advance();
 
         Token ptk = null;
         if (currentToken.type == TokenType.SkinnyArrow) {
-            advance(); res.registerAdvancement();
+            advance();
+            res.registerAdvancement();
             if (!currentToken.type.equals(TokenType.Identifier)) return res.failure(Error.InvalidSyntax(
                     currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                     "Expected identifier"
             ));
             ptk = currentToken;
-            res.registerAdvancement(); advance();
+            res.registerAdvancement();
+            advance();
         }
 
 
         if (!currentToken.type.equals(TokenType.LeftBrace)) return res.failure(Error.ExpectedCharError(
                 currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                 "Expected '{'"
-        )); res.registerAdvancement(); advance();
+        ));
+        res.registerAdvancement();
+        advance();
 
         List<AttrDeclareNode> attributeDeclarations = new ArrayList<>();
 
@@ -2706,7 +2759,8 @@ public class Parser {
 
             List<String> type = Collections.singletonList("any");
             if (currentToken.type == TokenType.Colon) {
-                result.registerAdvancement(); advance();
+                result.registerAdvancement();
+                advance();
                 Token t = result.register(buildTypeTok());
                 if (result.error != null) return result;
                 type = (List<String>) t.value;
@@ -2718,7 +2772,8 @@ public class Parser {
                     "Should be '=>'"
             ));
             if (currentToken.type == TokenType.FatArrow) {
-                result.registerAdvancement(); advance();
+                result.registerAdvancement();
+                advance();
                 expr = result.register(this.expr());
                 if (result.error != null) return result;
             }
@@ -2727,7 +2782,8 @@ public class Parser {
 
             res.register(expectSemicolon());
             if (res.error != null) return res;
-            advance(); result.registerAdvancement();
+            advance();
+            result.registerAdvancement();
 
             return result;
         };
@@ -2740,15 +2796,16 @@ public class Parser {
         List<MethDefNode> methods = new ArrayList<>();
         while (currentToken.type.equals(TokenType.Keyword) || currentToken.type.equals(TokenType.Identifier)) {
             if (constructorWords.contains(currentToken.value.toString())) {
-                advance(); res.registerAdvancement();
+                advance();
+                res.registerAdvancement();
                 argTKs = res.register(gatherArgs());
                 if (res.error != null) return res;
 
                 ingredientNode = res.register(this.block(false));
                 if (res.error != null) return res;
-            }
-            else if (methKeywords.contains(currentToken.value.toString())) {
-                res.registerAdvancement(); advance();
+            } else if (methKeywords.contains(currentToken.value.toString())) {
+                res.registerAdvancement();
+                advance();
 
                 boolean async, bin, stat, priv;
                 async = bin = stat = priv = false;
@@ -2775,7 +2832,8 @@ public class Parser {
                             priv = false;
                             break;
                     }
-                    advance(); res.registerAdvancement();
+                    advance();
+                    res.registerAdvancement();
                 }
 
                 if (!currentToken.type.equals(TokenType.Identifier)) return res.failure(Error.InvalidSyntax(
@@ -2786,7 +2844,8 @@ public class Parser {
 
                 matchConvention(varNameTok, "Method name", NamingConvention.CamelCase);
 
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
                 ArgData args = res.register(gatherArgs());
 
                 boolean isCatcher = res.register(this.isCatcher());
@@ -2798,12 +2857,14 @@ public class Parser {
                 Node nodeToReturn;
                 switch (currentToken.type) {
                     case SkinnyArrow:
-                        res.registerAdvancement(); advance();
+                        res.registerAdvancement();
+                        advance();
                         nodeToReturn = res.register(this.statement());
                         if (res.error != null) return res;
                         res.register(expectSemicolon());
                         if (res.error != null) return res;
-                        res.registerAdvancement(); advance();
+                        res.registerAdvancement();
+                        advance();
                         methods.add(new MethDefNode(
                                 varNameTok,
                                 args.argNameToks,
@@ -2820,27 +2881,29 @@ public class Parser {
                                 priv,
                                 args.argname,
                                 args.kwargname
-                        ).setCatcher(isCatcher)); break;
+                        ).setCatcher(isCatcher));
+                        break;
                     case LeftBrace:
-                         nodeToReturn = res.register(this.block(false));
-                         if (res.error != null) return res;
-                         methods.add(new MethDefNode(
-                                 varNameTok,
-                                 args.argNameToks,
-                                 args.argTypeToks,
-                                 nodeToReturn,
-                                 false,
-                                 bin,
-                                 async,
-                                 retype,
-                                 args.defaults,
-                                 args.defaultCount,
-                                 args.generics,
-                                 stat,
-                                 priv,
-                                 args.argname,
-                                 args.kwargname
-                         ).setCatcher(isCatcher)); break;
+                        nodeToReturn = res.register(this.block(false));
+                        if (res.error != null) return res;
+                        methods.add(new MethDefNode(
+                                varNameTok,
+                                args.argNameToks,
+                                args.argTypeToks,
+                                nodeToReturn,
+                                false,
+                                bin,
+                                async,
+                                retype,
+                                args.defaults,
+                                args.defaultCount,
+                                args.generics,
+                                stat,
+                                priv,
+                                args.argname,
+                                args.kwargname
+                        ).setCatcher(isCatcher));
+                        break;
                     default:
                         return res.failure(Error.ExpectedCharError(
                                 currentToken.pos_start.copy(), currentToken.pos_end.copy(),
@@ -2848,13 +2911,13 @@ public class Parser {
                         ));
                 }
 
-            }
-            else if (currentToken.type.equals(TokenType.Identifier)) {
+            } else if (currentToken.type.equals(TokenType.Identifier)) {
                 Token valTok = currentToken;
 
                 matchConvention(valTok, "Attribute name", NamingConvention.CamelCase);
 
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
                 if (currentToken.type.equals(TokenType.Equal)) return res.failure(Error.ExpectedCharError(
                         currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                         "Should be '=>'"
@@ -2862,8 +2925,7 @@ public class Parser {
                 if (currentToken.type == TokenType.FatArrow || currentToken.type == TokenType.Colon) {
                     res.register(getComplexAttr.run(valTok, false, false));
                     if (res.error != null) return res;
-                }
-                else {
+                } else {
                     attributeDeclarations.add(new AttrDeclareNode(valTok));
                     while (currentToken.type.equals(TokenType.Comma)) {
                         res.registerAdvancement();
@@ -2882,10 +2944,10 @@ public class Parser {
 
                     res.register(expectSemicolon());
                     if (res.error != null) return res;
-                    advance(); res.registerAdvancement();
+                    advance();
+                    res.registerAdvancement();
                 }
-            }
-            else if (declKeywords.contains(currentToken.value.toString())) {
+            } else if (declKeywords.contains(currentToken.value.toString())) {
                 boolean isprivate, isstatic;
                 isprivate = isstatic = false;
 
@@ -2904,7 +2966,8 @@ public class Parser {
                             isprivate = false;
                             break;
                     }
-                    res.registerAdvancement(); advance();
+                    res.registerAdvancement();
+                    advance();
                 }
 
                 if (currentToken.type != TokenType.Identifier) return res.failure(Error.InvalidSyntax(
@@ -2916,21 +2979,22 @@ public class Parser {
 
                 matchConvention(valTok, "Attribute name", NamingConvention.CamelCase);
 
-                res.registerAdvancement(); advance();
+                res.registerAdvancement();
+                advance();
                 res.register(getComplexAttr.run(valTok, isstatic, isprivate));
                 if (res.error != null) return res;
-            }
-            else return res.failure(Error.InvalidSyntax(
-                        currentToken.pos_start, currentToken.pos_end,
-                        "Unexpected keyword"
-                ));
+            } else return res.failure(Error.InvalidSyntax(
+                    currentToken.pos_start, currentToken.pos_end,
+                    "Unexpected keyword"
+            ));
         }
         if (!currentToken.type.equals(TokenType.RightBrace)) return res.failure(Error.ExpectedCharError(
                 currentToken.pos_start.copy(), currentToken.pos_end.copy(),
                 "Expected '}'"
         ));
         endLine(1);
-        advance(); res.registerAdvancement();
+        advance();
+        res.registerAdvancement();
 
         Node classDef = new ClassDefNode(
                 classNameTok,
@@ -2951,15 +3015,94 @@ public class Parser {
         if (argTKs.argNameToks.size() == attributeDeclarations.size() && methods.size() == 0) {
             Shell.logger.tip(new Tip(classDef.pos_start, classDef.pos_end,
                     "Can be refactored as a struct",
-"struct Vector3 {\n" +
-"    x,\n" +
-"    y,\n" +
-"    z\n" +
-"};")
+                    "struct Vector3 {\n" +
+                            "    x,\n" +
+                            "    y,\n" +
+                            "    z\n" +
+                            "};")
                     .asString());
         }
 
         return res.success(classDef);
+    }
+
+    enum NamingConvention {
+        CamelCase,
+        ScreamingSnakeCase,
+        PascalCase,
+        SnakeCase,
+        MixedSnakeCase,
+        None
+    }
+
+    public interface L<T> {
+        ParseResult<T> execute();
+    }
+
+    // Executables
+
+    private interface AttrGetter {
+        ParseResult<Node> run(Token tok, boolean b1, boolean b2);
+    }
+
+    private static class TokenMatcher {
+        TokenType type;
+        String value;
+
+        public TokenMatcher(TokenType type, String value) {
+            this.type = type;
+            this.value = value;
+        }
+    }
+
+    public static class EnumChild {
+        Token token;
+        List<String> params;
+        List<List<String>> types;
+        List<String> generics;
+
+        public EnumChild(Token token, List<String> params, List<List<String>> types, List<String> generics) {
+            this.token = token;
+            this.params = params;
+            this.types = types;
+            this.generics = generics;
+        }
+
+        public List<List<String>> types() {
+            return types;
+        }
+
+        public List<String> params() {
+            return params;
+        }
+
+        public List<String> generics() {
+            return generics;
+        }
+
+        public Token token() {
+            return token;
+        }
+    }
+
+    private static class ArgData {
+        List<Token> argNameToks;
+        List<Token> argTypeToks;
+        List<Node> defaults;
+        int defaultCount;
+        List<Token> generics;
+        String argname;
+        String kwargname;
+
+        public ArgData(List<Token> argNameToks, List<Token> argTypeToks, List<Node> defaults, int defaultCount, List<Token> generics, String argname, String kwargname) {
+            this.argNameToks = argNameToks;
+            this.argTypeToks = argTypeToks;
+            this.defaults = defaults;
+            this.defaultCount = defaultCount;
+            this.generics = generics;
+            this.argname = argname;
+            this.kwargname = kwargname;
+        }
     }
 
 }

@@ -1,8 +1,8 @@
 package lemon.jpizza.nodes.expressions;
 
 import lemon.jpizza.JPType;
-import lemon.jpizza.nodes.Node;
 import lemon.jpizza.Token;
+import lemon.jpizza.nodes.Node;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +14,8 @@ public class UseNode extends Node {
     public UseNode(Token useToken, List<Token> args) {
         this.useToken = useToken;
         this.args = args;
-        pos_start = useToken.pos_start.copy(); pos_end = useToken.pos_end.copy();
+        pos_start = useToken.pos_start.copy();
+        pos_end = useToken.pos_end.copy();
         jptype = JPType.Use;
     }
 

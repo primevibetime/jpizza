@@ -6,11 +6,13 @@ public class Cache {
     String name;
     Value[] args;
     Value result;
+
     public Cache(String name, Value[] args, Value result) {
         this.name = name;
         this.args = args;
         this.result = result;
     }
+
     public boolean equals(Object o) {
         if (o instanceof Cache) {
             Cache c = (Cache) o;

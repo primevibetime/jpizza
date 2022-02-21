@@ -19,30 +19,21 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Window {
-    private JFrame frame;
-    private Canvas canvas;
-
-    private Timer refreshLoop;
-
-    private boolean changed;
-    private boolean queue;
-
     private final List<Drawable> drawings;
     private final List<ColorSpan> colors;
     private final Map<Point, Rectangle> pixels;
-
-    private JFont font;
-
     private final HashMap<Integer, Boolean> keyPressed;
-
     private final HashMap<Integer, Boolean> keyTyped;
-
+    private final boolean[] mouseButtons;
+    private JFrame frame;
+    private Canvas canvas;
+    private Timer refreshLoop;
+    private boolean changed;
+    private boolean queue;
+    private JFont font;
     private int strokeSize;
     private int frames;
-
     private double start;
-
-    private final boolean[] mouseButtons;
 
     public Window() {
         changed = false;
@@ -57,16 +48,16 @@ public class Window {
         frames = 0;
         start = 1;
 
-        keyPressed = new HashMap<Integer, Boolean>(){{
+        keyPressed = new HashMap<Integer, Boolean>() {{
             for (Integer key : AbstractWindowToolkit.Keys.values())
                 put(key, false);
         }};
-        keyTyped = new HashMap<Integer, Boolean>(){{
+        keyTyped = new HashMap<Integer, Boolean>() {{
             for (Integer key : AbstractWindowToolkit.Keys.values())
                 put(key, false);
         }};
 
-        mouseButtons = new boolean[]{ false, false, false };
+        mouseButtons = new boolean[]{false, false, false};
 
         init();
     }
@@ -78,8 +69,7 @@ public class Window {
     public Window isMain(boolean bool) {
         if (bool) {
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        }
-        else {
+        } else {
             frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         }
         return this;
@@ -177,8 +167,7 @@ public class Window {
             drawings.clear();
             colors.clear();
             pixels.clear();
-        }
-        else {
+        } else {
             canvas.flush();
         }
     }
@@ -207,8 +196,7 @@ public class Window {
         change();
         if (queue) {
             Canvas.colorPush(drawing, drawings, colors);
-        }
-        else {
+        } else {
             canvas.draw(drawing);
         }
     }
@@ -219,12 +207,10 @@ public class Window {
             Rectangle r = new Rectangle(pos.x, pos.y, 1, 1, color);
             if (pixels.containsKey(pos)) {
                 pixels.replace(pos, r);
-            }
-            else {
+            } else {
                 pixels.put(pos, r);
             }
-        }
-        else {
+        } else {
             canvas.setPixel(pos, color);
         }
     }
@@ -356,8 +342,8 @@ public class Window {
         StringBuilder sb = new StringBuilder();
         for (int key : keyTyped.keySet()) {
             if (keyTyped.get(key) &&
-                AbstractWindowToolkit.KeyCode.containsKey(key) &&
-                AbstractWindowToolkit.KeyCode.get(key).length() == 1) {
+                    AbstractWindowToolkit.KeyCode.containsKey(key) &&
+                    AbstractWindowToolkit.KeyCode.get(key).length() == 1) {
                 sb.append(AbstractWindowToolkit.KeyCode.get(key));
             }
             keyTyped.replace(key, false);

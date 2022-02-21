@@ -8,9 +8,9 @@ import lemon.jpizza.compiler.values.functions.NativeResult;
 import java.util.List;
 
 public abstract class JPExtension {
+    protected static final NativeResult Ok = NativeResult.Ok();
     protected final VM vm;
     protected final String lib;
-    abstract public String name();
 
     public JPExtension(VM vm) {
         this.vm = vm;
@@ -22,16 +22,6 @@ public abstract class JPExtension {
         this.lib = lib;
     }
 
-    protected void print(Object str) {
-        Shell.logger.out(str);
-    }
-
-    protected void println(Object str) {
-        Shell.logger.outln(str);
-    }
-
-    protected static final NativeResult Ok = NativeResult.Ok();
-
     protected static NativeResult Ok(Value val) {
         return NativeResult.Ok(val);
     }
@@ -42,6 +32,16 @@ public abstract class JPExtension {
 
     protected static NativeResult Err(String title, String msg) {
         return NativeResult.Err(title, msg);
+    }
+
+    abstract public String name();
+
+    protected void print(Object str) {
+        Shell.logger.out(str);
+    }
+
+    protected void println(Object str) {
+        Shell.logger.outln(str);
     }
 
     protected void func(String name, JNative.Method method, int argc) {

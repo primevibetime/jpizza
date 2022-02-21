@@ -1,31 +1,29 @@
 package lemon.jpizza.compiler.libraries;
 
-import lemon.jpizza.Pair;
 import lemon.jpizza.compiler.values.Value;
 import lemon.jpizza.compiler.values.functions.JNative;
 import lemon.jpizza.compiler.values.functions.NativeResult;
 import lemon.jpizza.compiler.vm.JPExtension;
 import lemon.jpizza.compiler.vm.VM;
 
-import java.io.IOException;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
 import java.net.URL;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class HTTPx extends JPExtension {
+    public HTTPx(VM vm) {
+        super(vm);
+    }
+
     @Override
     public String name() {
         return "httpx";
-    }
-
-    public HTTPx(VM vm) {
-        super(vm);
     }
 
     private HttpURLConnection getConn(String url, Map<String, String> headers, String method) throws IOException {

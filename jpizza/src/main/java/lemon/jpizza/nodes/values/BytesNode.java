@@ -13,7 +13,8 @@ public class BytesNode extends Node {
 
     public BytesNode(Node toBytes) {
         this.toBytes = toBytes;
-        this.pos_start = toBytes.pos_start.copy(); this.pos_end = toBytes.pos_end.copy();
+        this.pos_start = toBytes.pos_start.copy();
+        this.pos_end = toBytes.pos_end.copy();
         jptype = JPType.Bytes;
     }
 

@@ -12,13 +12,13 @@ import java.util.Arrays;
 public class Pretzel extends JPExtension {
     private HttpServer server;
 
+    public Pretzel(VM vm) {
+        super(vm);
+    }
+
     @Override
     public String name() {
         return "pretzel";
-    }
-
-    public Pretzel(VM vm) {
-        super(vm);
     }
 
     @Override

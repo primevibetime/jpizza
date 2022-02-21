@@ -1,8 +1,8 @@
 package lemon.jpizza.nodes.definitions;
 
 import lemon.jpizza.JPType;
-import lemon.jpizza.nodes.Node;
 import lemon.jpizza.Token;
+import lemon.jpizza.nodes.Node;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,11 +20,11 @@ public class MethDefNode extends Node {
     public final List<String> returnType;
     public final List<Node> defaults;
     public final int defaultCount;
-    public boolean catcher = false;
     public final boolean stat;
     public final boolean priv;
     public final String argname;
     public final String kwargname;
+    public boolean catcher = false;
 
     public MethDefNode(Token var_name_tok, List<Token> arg_name_toks, List<Token> arg_type_toks, Node body_node,
                        boolean autoreturn, boolean bin, boolean async, List<String> returnType, List<Node> defaults,

@@ -9,10 +9,12 @@ import java.util.List;
 
 public class DerefNode extends Node {
     public final Node ref;
+
     public DerefNode(Node ref) {
         this.ref = ref;
 
-        pos_start = ref.pos_start; pos_end = ref.pos_end;
+        pos_start = ref.pos_start;
+        pos_end = ref.pos_end;
         jptype = JPType.Deref;
     }
 

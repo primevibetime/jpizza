@@ -1,8 +1,8 @@
 package lemon.jpizza.nodes.expressions;
 
 import lemon.jpizza.JPType;
-import lemon.jpizza.nodes.Node;
 import lemon.jpizza.Token;
+import lemon.jpizza.nodes.Node;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,7 +15,8 @@ public class ClaccessNode extends Node {
     public ClaccessNode(Node cls, Token atr) {
         class_tok = cls;
         attr_name_tok = atr;
-        pos_start = cls.pos_start.copy(); pos_end = atr.pos_end.copy();
+        pos_start = cls.pos_start.copy();
+        pos_end = atr.pos_end.copy();
         jptype = JPType.Claccess;
     }
 

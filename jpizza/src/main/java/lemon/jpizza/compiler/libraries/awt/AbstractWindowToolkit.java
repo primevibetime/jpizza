@@ -18,18 +18,13 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 
 import static java.awt.event.KeyEvent.*;
 
 public class AbstractWindowToolkit extends JPExtension {
-    private static List<Window> windows = new ArrayList<>();
-    private static Window window;
-    private static Window focused;
-    private static int index;
-
-    public static final HashMap<String, Integer> Keys = new HashMap<String, Integer>(){{
+    public static final HashMap<String, Integer> Keys = new HashMap<String, Integer>() {{
         put("a", VK_A);
         put("b", VK_B);
         put("c", VK_C);
@@ -113,14 +108,14 @@ public class AbstractWindowToolkit extends JPExtension {
 
         put(" ", VK_SPACE);
     }};
-
-    public static final HashMap<Integer, String> KeyCode = new HashMap<Integer, String>(){{
+    public static final HashMap<Integer, String> KeyCode = new HashMap<Integer, String>() {{
         for (String key : Keys.keySet())
             put(Keys.get(key), key);
     }};
-
-    @Override
-    public String name() { return "awt"; }
+    private static List<Window> windows = new ArrayList<>();
+    private static Window window;
+    private static Window focused;
+    private static int index;
 
     public AbstractWindowToolkit(VM vm) {
         super(vm);
@@ -188,6 +183,11 @@ public class AbstractWindowToolkit extends JPExtension {
 
     private static void setPixel(Point pos, Color color) {
         window.setPixel(pos, color);
+    }
+
+    @Override
+    public String name() {
+        return "awt";
     }
 
     @Override
@@ -303,7 +303,7 @@ public class AbstractWindowToolkit extends JPExtension {
         func("refreshUnloop", ifInit(args -> {
             window.stopLoop();
             return Ok;
-        }) , 0);
+        }), 0);
         func("screenshot", ifInit(args -> {
             String filename = args[0].asString();
 
@@ -489,8 +489,8 @@ public class AbstractWindowToolkit extends JPExtension {
             focused = window;
             return Ok;
         }), 0);
-        func("width", args -> Ok(window.getWidth()) , 0);
-        func("height", args -> Ok(window.getHeight()) , 0);
+        func("width", args -> Ok(window.getWidth()), 0);
+        func("height", args -> Ok(window.getHeight()), 0);
     }
 
     private void input() {
@@ -558,8 +558,7 @@ public class AbstractWindowToolkit extends JPExtension {
                 FileNameExtensionFilter filter = new FileNameExtensionFilter(fils.get(0).asString(), fils.get(1).asString());
                 fileChooser.addChoosableFileFilter(filter);
                 fileChooser.setFileFilter(filter);
-            }
-            else if (!filType.equals("void")) {
+            } else if (!filType.equals("void")) {
                 return Err("Type", "Invalid file filter");
             }
 
@@ -577,8 +576,7 @@ public class AbstractWindowToolkit extends JPExtension {
 
             if (res == JFileChooser.APPROVE_OPTION) {
                 return Ok(fileChooser.getSelectedFile().getAbsolutePath());
-            }
-            else {
+            } else {
                 return Ok;
             }
         }, Arrays.asList("String", "any", "num"));

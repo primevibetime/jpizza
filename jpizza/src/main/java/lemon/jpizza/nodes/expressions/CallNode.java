@@ -1,9 +1,13 @@
 package lemon.jpizza.nodes.expressions;
 
-import lemon.jpizza.*;
+import lemon.jpizza.JPType;
+import lemon.jpizza.Token;
 import lemon.jpizza.nodes.Node;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class CallNode extends Node {
     public final Node nodeToCall;
@@ -33,8 +37,7 @@ public class CallNode extends Node {
                     for (Node node : spread.internal.asList())
                         optimizedArgNodes.add(node.optimize());
                 }
-            }
-            else {
+            } else {
                 optimizedArgNodes.add(optimized);
             }
         }

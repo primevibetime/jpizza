@@ -29,8 +29,7 @@ public class Polygon extends Drawable {
 
         if (filled) {
             g.fillPolygon(x, y, x.length);
-        }
-        else {
+        } else {
             g.drawPolygon(x, y, x.length);
         }
     }

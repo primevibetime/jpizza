@@ -1,6 +1,7 @@
 package lemon.jpizza.compiler.libraries;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lemon.jpizza.Pair;
 import lemon.jpizza.Token;
 import lemon.jpizza.TokenType;
@@ -9,8 +10,6 @@ import lemon.jpizza.compiler.vm.JPExtension;
 import lemon.jpizza.compiler.vm.VM;
 import lemon.jpizza.errors.Error;
 import lemon.jpizza.generators.Lexer;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.*;
@@ -30,30 +29,27 @@ public class JPSon extends JPExtension {
             TokenType.Boolean
     );
 
-    @Override
-    public String name() { return "json"; }
-
     public JPSon(VM vm) {
         super(vm);
+    }
+
+    @Override
+    public String name() {
+        return "json";
     }
 
     private String dump(Value value) {
         if (value.isString) {
             return "\"" + value.asString() + "\"";
-        }
-        else if (value.isNumber) {
+        } else if (value.isNumber) {
             return value.asNumber().toString();
-        }
-        else if (value.isBool) {
+        } else if (value.isBool) {
             return value.asBool() ? "true" : "false";
-        }
-        else if (value.isList) {
+        } else if (value.isList) {
             return dumpList(value.asList());
-        }
-        else if (value.isMap) {
+        } else if (value.isMap) {
             return dumpMap(value.asMap());
-        }
-        else {
+        } else {
             return "";
         }
     }
@@ -109,7 +105,8 @@ public class JPSon extends JPExtension {
 
             ObjectMapper mapper = new ObjectMapper();
             try {
-                TypeReference<Map<String, Object>> typeRef = new TypeReference<Map<String, Object>>() {};
+                TypeReference<Map<String, Object>> typeRef = new TypeReference<Map<String, Object>>() {
+                };
                 Map<String, Object> map = mapper.readValue(value, typeRef);
                 Map<Value, Value> values = new HashMap<>();
                 for (Map.Entry<String, Object> entry : map.entrySet()) {

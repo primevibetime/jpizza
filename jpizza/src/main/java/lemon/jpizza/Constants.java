@@ -81,11 +81,8 @@ public class Constants {
             "static",
             "stc"
     };
-    @SuppressWarnings("unused") public static char BREAK = ';';
-    @SuppressWarnings("unused") public static char[] IGNORE = new char[]{' ', '\n', '\t'};
     public static final char splitter = '\n';
-
-    public static final Map<String, String> STANDLIBS = new HashMap<String, String>(){{
+    public static final Map<String, String> STANDLIBS = new HashMap<String, String>() {{
         put("std", "enum pub Option {\n" +
                 "    Some { val },\n" +
                 "    None,\n" +
@@ -320,6 +317,10 @@ public class Constants {
                 "    }\n" +
                 "}");
     }};
+    @SuppressWarnings("unused")
+    public static char BREAK = ';';
+    @SuppressWarnings("unused")
+    public static char[] IGNORE = new char[]{' ', '\n', '\t'};
 
     public static int indexToLine(String code, int index) {
         return code.substring(0, index).split("\n").length - 1;
@@ -370,16 +371,15 @@ public class Constants {
                     highlight = "╰" + repeat(end - index - 2, "─") + "╯";
                 else
                     highlight = "\\" + repeat(end - index - 2, "_") + "/";
-            }
-            else {
+            } else {
                 highlight = "^";
             }
 
             sb.append(text)
-              .append("\n")
-              .append(String.join("", repeat(index, " ")))
-              .append(highlight)
-              .append("\n");
+                    .append("\n")
+                    .append(String.join("", repeat(index, " ")))
+                    .append(highlight)
+                    .append("\n");
 
             len -= lineLen - index;
 
@@ -390,10 +390,10 @@ public class Constants {
         return sb.toString();
     }
 
-    public static int nonWhitespace(String string){
+    public static int nonWhitespace(String string) {
         char[] characters = string.toCharArray();
-        for(int i = 0; i < string.length(); i++){
-            if(!Character.isWhitespace(characters[i])){
+        for (int i = 0; i < string.length(); i++) {
+            if (!Character.isWhitespace(characters[i])) {
                 return i;
             }
         }
@@ -424,8 +424,7 @@ public class Constants {
                     grouping = "╰" + repeat("─", dist - 2) + "╯";
                 else
                     grouping = "\\" + repeat("_", dist - 2) + "/";
-            }
-            else {
+            } else {
                 grouping = "^";
             }
 

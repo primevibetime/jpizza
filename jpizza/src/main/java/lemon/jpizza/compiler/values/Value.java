@@ -19,29 +19,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class Value {
-    protected double number;
-    protected String string;
-    protected boolean bool;
-    protected List<Value> list;
-    protected Map<Value, Value> map;
-    protected JFunc func;
-    protected JNative nativeFunc;
-    protected Var var;
-    protected JClosure closure;
-    protected JClass jClass;
-    protected Instance instance;
-    protected List<String> type;
-    protected BoundMethod boundMethod;
-    protected Namespace namespace;
-    protected JEnum enumParent;
-    protected JEnumChild enumChild;
-    protected Spread spread;
-    protected Value ref;
-    protected byte[] bytes;
-    protected Result res;
-    protected String patternBinding;
-    protected Pattern pattern;
-
     public boolean isNull = false;
     public boolean isNumber = false;
     public boolean isString = false;
@@ -65,6 +42,28 @@ public class Value {
     public boolean isRes = false;
     public boolean isPatternBinding = false;
     public boolean isPattern = false;
+    protected double number;
+    protected String string;
+    protected boolean bool;
+    protected List<Value> list;
+    protected Map<Value, Value> map;
+    protected JFunc func;
+    protected JNative nativeFunc;
+    protected Var var;
+    protected JClosure closure;
+    protected JClass jClass;
+    protected Instance instance;
+    protected List<String> type;
+    protected BoundMethod boundMethod;
+    protected Namespace namespace;
+    protected JEnum enumParent;
+    protected JEnumChild enumChild;
+    protected Spread spread;
+    protected Value ref;
+    protected byte[] bytes;
+    protected Result res;
+    protected String patternBinding;
+    protected Pattern pattern;
 
     public Value() {
         this.isNull = true;
@@ -88,14 +87,6 @@ public class Value {
     public Value(Value value) {
         this.ref = value;
         this.isRef = true;
-    }
-
-    public static Value patternBinding(String patternBinding) {
-        Value value = new Value();
-        value.patternBinding = patternBinding;
-        value.isPatternBinding = true;
-        value.isNull = false;
-        return value;
     }
 
     public Value(Spread spread) {
@@ -131,14 +122,6 @@ public class Value {
     public Value(JClass jClass) {
         this.jClass = jClass;
         this.isClass = true;
-    }
-
-    public static Value fromType(List<String> type) {
-        Value value = new Value();
-        value.type = type;
-        value.isType = true;
-        value.isNull = false;
-        return value;
     }
 
     public Value(Instance instance) {
@@ -186,29 +169,108 @@ public class Value {
         this.isNativeFunc = true;
     }
 
+    public static Value patternBinding(String patternBinding) {
+        Value value = new Value();
+        value.patternBinding = patternBinding;
+        value.isPatternBinding = true;
+        value.isNull = false;
+        return value;
+    }
+
+    public static Value fromType(List<String> type) {
+        Value value = new Value();
+        value.type = type;
+        value.isType = true;
+        value.isNull = false;
+        return value;
+    }
+
+    public static Value fromObject(Object object) {
+        if (object instanceof Double ||
+                object instanceof Float ||
+                object instanceof Integer ||
+                object instanceof Long ||
+                object instanceof Short ||
+                object instanceof Byte) {
+            return new Value(Double.parseDouble(object.toString()));
+        } else if (object instanceof String) {
+            return new Value((String) object);
+        } else if (object instanceof Boolean) {
+            return new Value((Boolean) object);
+        } else if (object instanceof List) {
+            List<Value> list = new ArrayList<>();
+            for (Object o : (List<Object>) object) {
+                list.add(fromObject(o));
+            }
+            return new Value(list);
+        } else if (object instanceof Map) {
+            Map<Value, Value> map = new HashMap<>();
+            for (Map.Entry<Object, Object> entry : ((Map<Object, Object>) object).entrySet()) {
+                map.put(fromObject(entry.getKey()), fromObject(entry.getValue()));
+            }
+            return new Value(map);
+        } else if (object instanceof JClass) {
+            return new Value((JClass) object);
+        } else if (object instanceof Instance) {
+            return new Value((Instance) object);
+        } else if (object instanceof JEnumChild) {
+            return new Value((JEnumChild) object);
+        } else if (object instanceof JEnum) {
+            return new Value((JEnum) object);
+        } else if (object instanceof Spread) {
+            return new Value((Spread) object);
+        } else if (object instanceof Value) {
+            return (Value) object;
+        } else if (object instanceof byte[]) {
+            return new Value((byte[]) object);
+        }
+        return new Value();
+    }
+
+    public static NativeResult fromByte(byte[] bytes) {
+        ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+        try {
+            ObjectInputStream is = new ObjectInputStream(in);
+            Object obj = is.readObject();
+            return NativeResult.Ok(Value.fromObject(obj));
+        } catch (IOException | ClassNotFoundException e) {
+            return NativeResult.Err("Internal", "Could not read bytes (" + e.getMessage() + ")");
+        }
+    }
+
+    public static int[] dumpString(String s) {
+        byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
+        int[] result = new int[bytes.length + 2];
+        result[0] = ChunkCode.String;
+        result[1] = bytes.length;
+        for (int i = 0; i < bytes.length; i++) {
+            result[i + 2] = ((int) bytes[i]) << 2;
+        }
+        return result;
+    }
+
+    public static void addAllString(List<Integer> list, String s) {
+        for (int i : dumpString(s)) {
+            list.add(i);
+        }
+    }
+
     public Double asNumber() {
         if (isNumber) {
             return number;
-        }
-        else if (isString) {
+        } else if (isString) {
             return (double) string.length();
-        }
-        else if (isBool) {
+        } else if (isBool) {
             return bool ? 1.0 : 0.0;
-        }
-        else if (isList) {
+        } else if (isList) {
             return (double) list.size();
-        }
-        else if (isMap) {
+        } else if (isMap) {
             return (double) map.size();
-        }
-        else if (isInstance) {
+        } else if (isInstance) {
             return instance.asNumber();
-        }
-        else if (isRef) {
+        } else if (isRef) {
             return ref.asNumber();
-        }
-        else if (isRes) {
+        } else if (isRes) {
             return res.isError() ? 0.0 : 1.0;
         }
         return 0.0;
@@ -218,29 +280,21 @@ public class Value {
     public boolean asBool() {
         if (isBool) {
             return bool;
-        }
-        else if (this.isNull) {
+        } else if (this.isNull) {
             return false;
-        }
-        else if (isNumber) {
+        } else if (isNumber) {
             return number != 0.0;
-        }
-        else if (isString) {
+        } else if (isString) {
             return !string.isEmpty();
-        }
-        else if (isList) {
+        } else if (isList) {
             return !list.isEmpty();
-        }
-        else if (isMap) {
+        } else if (isMap) {
             return !map.isEmpty();
-        }
-        else if (isInstance) {
+        } else if (isInstance) {
             return instance.asBool();
-        }
-        else if (isRef) {
+        } else if (isRef) {
             return ref.asBool();
-        }
-        else if (isRes) {
+        } else if (isRes) {
             return !res.isError();
         }
         return false;
@@ -250,15 +304,12 @@ public class Value {
     public String asString() {
         if (isString) {
             return string;
-        }
-        else if (this.isNull) {
+        } else if (this.isNull) {
             return "";
-        }
-        else if (isNumber) {
+        } else if (isNumber) {
             if (number == Double.MAX_VALUE) {
                 return "Infinity";
-            }
-            else if (number == Double.MIN_VALUE) {
+            } else if (number == Double.MIN_VALUE) {
                 return "-Infinity";
             }
 
@@ -266,105 +317,84 @@ public class Value {
                 return String.valueOf((long) number);
             }
             return String.valueOf(number);
-        }
-        else if (isBool) {
+        } else if (isBool) {
             return String.valueOf(bool);
-        }
-        else if (isList) {
+        } else if (isList) {
             StringBuilder result = new StringBuilder("[");
             list.forEach(k -> {
                 if (k.isString) {
                     result.append('"').append(k.string).append('"');
-                }
-                else {
+                } else {
                     result.append(k.asString());
                 }
                 result.append(", ");
             });
             if (result.length() > 1) {
                 result.setLength(result.length() - 2);
-            } result.append("]");
+            }
+            result.append("]");
             return result.toString();
-        }
-        else if (isMap) {
+        } else if (isMap) {
             StringBuilder result = new StringBuilder("{");
             map.forEach((k, v) -> {
                 if (k.isString) {
                     result.append('"').append(k.string).append('"');
-                }
-                else {
+                } else {
                     result.append(k.asString());
                 }
                 result.append(": ");
                 if (v.isString) {
                     result.append('"').append(v.string).append('"');
-                }
-                else {
+                } else {
                     result.append(v.asString());
                 }
                 result.append(", ");
             });
             if (result.length() > 1) {
                 result.setLength(result.length() - 2);
-            } result.append("}");
+            }
+            result.append("}");
             return result.toString();
-        }
-        else if (isFunc) {
+        } else if (isFunc) {
             return func.toString();
-        }
-        else if (isClosure) {
+        } else if (isClosure) {
             return closure.function.toString();
-        }
-        else if (isVar) {
+        } else if (isVar) {
             return var.toString();
-        }
-        else if (isNativeFunc) {
+        } else if (isNativeFunc) {
             return nativeFunc.toString();
-        }
-        else if (isClass) {
+        } else if (isClass) {
             return jClass.toString();
-        }
-        else if (isType) {
+        } else if (isType) {
             return String.join("", type);
-        }
-        else if (isInstance) {
+        } else if (isInstance) {
             return instance.toString();
-        }
-        else if (isBoundMethod) {
+        } else if (isBoundMethod) {
             return boundMethod.toString();
-        }
-        else if (isNamespace) {
+        } else if (isNamespace) {
             return namespace.name();
-        }
-        else if (isEnumParent) {
+        } else if (isEnumParent) {
             return enumParent.name();
-        }
-        else if (isEnumChild) {
+        } else if (isEnumChild) {
             return enumChild.type() + "::" + enumChild.getValue();
-        }
-        else if (isRef) {
+        } else if (isRef) {
             return ref.asString();
-        }
-        else if (isBytes) {
+        } else if (isBytes) {
             StringBuilder sb = new StringBuilder();
 
             for (int i = 0; i < bytes.length; i++)
                 sb.append(bytes[i]).append(", ");
 
             return "{ " + sb + "len=" + bytes.length + " }";
-        }
-        else if (isRes) {
+        } else if (isRes) {
             if (res.isError()) {
                 return String.format("(\"%s\" : \"%s\")", res.getErrorMessage(), res.getErrorReason());
-            }
-            else {
+            } else {
                 return String.format("(%s)", res.getValue());
             }
-        }
-        else if (isPatternBinding) {
+        } else if (isPatternBinding) {
             return "{ pattern: " + patternBinding + " }";
-        }
-        else if (isPattern) {
+        } else if (isPattern) {
             StringBuilder sb = new StringBuilder(pattern.value.toString() + " { ");
             for (Map.Entry<String, Value> entry : pattern.cases.entrySet()) {
                 sb.append(entry.getKey()).append(": ").append(entry.getValue().asString()).append(", ");
@@ -413,36 +443,28 @@ public class Value {
     public List<Value> asList() {
         if (isList) {
             return list;
-        }
-        else if (isMap) {
+        } else if (isMap) {
             return new ArrayList<>(map.keySet());
-        }
-        else if (isString) {
+        } else if (isString) {
             String[] lis = string.split("");
             List<Value> list = new ArrayList<>();
             for (String s : lis) {
                 list.add(new Value(s));
             }
             return list;
-        }
-        else if (this.isNull) {
+        } else if (this.isNull) {
             return new ArrayList<>();
-        }
-        else if (isInstance) {
+        } else if (isInstance) {
             return instance.asList();
-        }
-        else if (isRef) {
+        } else if (isRef) {
             return ref.asList();
-        }
-        else if (isRes) {
+        } else if (isRes) {
             if (res.isError()) {
                 return Arrays.asList(new Value(res.getErrorMessage()), new Value(res.getErrorReason()));
-            }
-            else {
+            } else {
                 return Collections.singletonList(new Value(res.getValue()));
             }
-        }
-        else if (isBytes) {
+        } else if (isBytes) {
             List<Value> list = new ArrayList<>();
             for (int i = 0; i < bytes.length; i++) {
                 list.add(new Value(bytes[i]));
@@ -462,24 +484,19 @@ public class Value {
     public Map<Value, Value> asMap() {
         if (isMap) {
             return map;
-        }
-        else if (this.isNull) {
+        } else if (this.isNull) {
             return new HashMap<>();
-        }
-        else if (isInstance) {
+        } else if (isInstance) {
             return instance.asMap();
-        }
-        else if (isRef) {
+        } else if (isRef) {
             return ref.asMap();
-        }
-        else if (isRes) {
+        } else if (isRes) {
             Map<Value, Value> map = new HashMap<>();
             map.put(new Value("sucess"), new Value(res.getValue()));
             List<Value> key;
             if (res.isError()) {
                 key = new ArrayList<>(Arrays.asList(new Value(res.getErrorMessage()), new Value(res.getErrorReason())));
-            }
-            else {
+            } else {
                 key = new ArrayList<>();
             }
             map.put(new Value("error"), new Value(key));
@@ -491,11 +508,9 @@ public class Value {
     public JFunc asFunc() {
         if (isFunc) {
             return func;
-        }
-        else if (this.isClosure) {
+        } else if (this.isClosure) {
             return closure.function;
-        }
-        else if (isRef) {
+        } else if (isRef) {
             return ref.asFunc();
         }
         return null;
@@ -504,8 +519,7 @@ public class Value {
     public JClosure asClosure() {
         if (isClosure) {
             return closure;
-        }
-        else if (isRef) {
+        } else if (isRef) {
             return ref.asClosure();
         }
         return null;
@@ -514,8 +528,7 @@ public class Value {
     public JClass asClass() {
         if (isClass) {
             return jClass;
-        }
-        else if (isRef) {
+        } else if (isRef) {
             return ref.asClass();
         }
         return null;
@@ -528,8 +541,7 @@ public class Value {
     public BoundMethod asBoundMethod() {
         if (isBoundMethod) {
             return boundMethod;
-        }
-        else if (isRef) {
+        } else if (isRef) {
             return ref.asBoundMethod();
         }
         return null;
@@ -538,44 +550,31 @@ public class Value {
     public String type() {
         if (isNumber) {
             return "num";
-        }
-        else if (isString) {
+        } else if (isString) {
             return "String";
-        }
-        else if (isBool) {
+        } else if (isBool) {
             return "bool";
-        }
-        else if (isList) {
+        } else if (isList) {
             return "list";
-        }
-        else if (isMap) {
+        } else if (isMap) {
             return "dict";
-        }
-        else if (isFunc || isNativeFunc || isClosure) {
+        } else if (isFunc || isNativeFunc || isClosure) {
             return "function";
-        }
-        else if (isClass) {
+        } else if (isClass) {
             return "recipe";
-        }
-        else if (isInstance) {
+        } else if (isInstance) {
             return instance.type();
-        }
-        else if (isNamespace) {
+        } else if (isNamespace) {
             return "namespace";
-        }
-        else if (isEnumParent) {
+        } else if (isEnumParent) {
             return "Enum";
-        }
-        else if (isEnumChild) {
+        } else if (isEnumChild) {
             return enumChild.type();
-        }
-        else if (isRef) {
+        } else if (isRef) {
             return "[" + ref.type() + "]";
-        }
-        else if (isBytes) {
+        } else if (isBytes) {
             return "bytearray";
-        }
-        else if (isRes) {
+        } else if (isRes) {
             return "catcher";
         }
         return "void";
@@ -586,8 +585,7 @@ public class Value {
         if (isNumber) {
             number += other.asNumber();
             return VMResult.OK;
-        }
-        else if (isList) {
+        } else if (isList) {
             list.addAll(other.asList());
             return VMResult.OK;
         }
@@ -659,8 +657,7 @@ public class Value {
     public String toSafeString() {
         if (isInstance) {
             return instance.clazz.name;
-        }
-        else if (isVar) {
+        } else if (isVar) {
             return var.toSafeString();
         }
         return toString();
@@ -669,31 +666,25 @@ public class Value {
     public Value copy() {
         if (isNumber) {
             return new Value(number);
-        }
-        else if (isString) {
+        } else if (isString) {
             return new Value(string);
-        }
-        else if (isBool) {
+        } else if (isBool) {
             return new Value(bool);
-        }
-        else if (isList) {
+        } else if (isList) {
             List<Value> list = new ArrayList<>();
             for (Value value : this.list) {
                 list.add(value.copy());
             }
             return new Value(list);
-        }
-        else if (isMap) {
+        } else if (isMap) {
             Map<Value, Value> map = new HashMap<>();
             for (Map.Entry<Value, Value> entry : this.map.entrySet()) {
                 map.put(entry.getKey().copy(), entry.getValue().copy());
             }
             return new Value(map);
-        }
-        else if (isClass) {
+        } else if (isClass) {
             return new Value(jClass.copy());
-        }
-        else if (isInstance) {
+        } else if (isInstance) {
             return new Value(instance.copy());
         }
         return this;
@@ -733,70 +724,6 @@ public class Value {
         return Constants.objToBytes(asObject());
     }
 
-    public static Value fromObject(Object object) {
-        if (object instanceof Double ||
-                object instanceof Float ||
-                object instanceof Integer ||
-                object instanceof Long ||
-                object instanceof Short ||
-                object instanceof Byte) {
-            return new Value(Double.parseDouble(object.toString()));
-        }
-        else if (object instanceof String) {
-            return new Value((String) object);
-        }
-        else if (object instanceof Boolean) {
-            return new Value((Boolean) object);
-        }
-        else if (object instanceof List) {
-            List<Value> list = new ArrayList<>();
-            for (Object o : (List<Object>) object) {
-                list.add(fromObject(o));
-            }
-            return new Value(list);
-        }
-        else if (object instanceof Map) {
-            Map<Value, Value> map = new HashMap<>();
-            for (Map.Entry<Object, Object> entry : ((Map<Object, Object>) object).entrySet()) {
-                map.put(fromObject(entry.getKey()), fromObject(entry.getValue()));
-            }
-            return new Value(map);
-        }
-        else if (object instanceof JClass) {
-            return new Value((JClass) object);
-        }
-        else if (object instanceof Instance) {
-            return new Value((Instance) object);
-        }
-        else if (object instanceof JEnumChild) {
-            return new Value((JEnumChild) object);
-        }
-        else if (object instanceof JEnum) {
-            return new Value((JEnum) object);
-        }
-        else if (object instanceof Spread) {
-            return new Value((Spread) object);
-        }
-        else if (object instanceof Value) {
-            return (Value) object;
-        }
-        else if (object instanceof byte[]) {
-            return new Value((byte[]) object);
-        }
-        return new Value();
-    }
-
-    public static NativeResult fromByte(byte[] bytes) {
-        ByteArrayInputStream in = new ByteArrayInputStream(bytes);
-        try {
-            ObjectInputStream is = new ObjectInputStream(in);
-            Object obj = is.readObject();
-            return NativeResult.Ok(Value.fromObject(obj));
-        } catch (IOException | ClassNotFoundException e) {
-            return NativeResult.Err("Internal", "Could not read bytes (" + e.getMessage() + ")");
-        }
-    }
-
     public Object asObject() {
         if (isInstance)
             return instance;
@@ -824,8 +751,7 @@ public class Value {
                 list.add(value.asObject());
             }
             return list;
-        }
-        else if (isMap) {
+        } else if (isMap) {
             Map<Object, Object> map = new HashMap<>();
             for (Map.Entry<Value, Value> entry : this.map.entrySet()) {
                 map.put(entry.getKey().asObject(), entry.getValue().asObject());
@@ -846,64 +772,36 @@ public class Value {
     public Value shallowCopy() {
         if (isNumber) {
             return new Value(number);
-        }
-        else if (isString) {
+        } else if (isString) {
             return new Value(string);
-        }
-        else if (isBool) {
+        } else if (isBool) {
             return new Value(bool);
-        }
-        else if (isList) {
+        } else if (isList) {
             return new Value(new ArrayList<>(list));
-        }
-        else if (isMap) {
+        } else if (isMap) {
             return new Value(new HashMap<>(map));
-        }
-        else if (isClass) {
+        } else if (isClass) {
             return new Value(jClass.copy());
-        }
-        else if (isInstance) {
+        } else if (isInstance) {
             return new Value(instance.copy());
         }
         return this;
     }
 
-    public static int[] dumpString(String s) {
-        byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
-        int[] result = new int[bytes.length + 2];
-        result[0] = ChunkCode.String;
-        result[1] = bytes.length;
-        for (int i = 0; i < bytes.length; i++) {
-            result[i + 2] = ((int) bytes[i]) << 2;
-        }
-        return result;
-    }
-
-    public static void addAllString(List<Integer> list, String s) {
-        for (int i : dumpString(s)) {
-            list.add(i);
-        }
-    }
-
     public int[] dump() {
         if (isBool) {
-            return new int[] { ChunkCode.Boolean, bool ? 1 : 0 };
-        }
-        else if (isNumber) {
+            return new int[]{ChunkCode.Boolean, bool ? 1 : 0};
+        } else if (isNumber) {
             ByteBuffer buffer = ByteBuffer.allocate(8);
             buffer.putDouble(number);
-            return new int[] { ChunkCode.Number, buffer.getInt(0), buffer.getInt(4) };
-        }
-        else if (isString) {
+            return new int[]{ChunkCode.Number, buffer.getInt(0), buffer.getInt(4)};
+        } else if (isString) {
             return dumpString(string);
-        }
-        else if (isEnumParent) {
+        } else if (isEnumParent) {
             return enumParent.dump();
-        }
-        else if (isFunc) {
+        } else if (isFunc) {
             return func.dump();
-        }
-        else if (isType) {
+        } else if (isType) {
             List<Integer> result = new ArrayList<>();
             result.add(ChunkCode.Type);
             result.add(type.size());

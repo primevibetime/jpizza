@@ -7,11 +7,11 @@ import java.util.Collections;
 import java.util.List;
 
 public class ClassAttr {
-    public Value val;
-    public String type;
     public final List<String> rawType;
     public final boolean isStatic;
     public final boolean isPrivate;
+    public Value val;
+    public String type;
 
     public ClassAttr(Value val, String type, List<String> rawType, boolean isStatic, boolean isPrivate) {
         this.val = val;

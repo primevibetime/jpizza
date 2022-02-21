@@ -20,10 +20,19 @@ public class Canvas extends JPanel {
 
     public Canvas() {
         drawings = new Queue<>(new ArrayList<>());
-        colors   = new Queue<>(new ArrayList<>());
-        pixels   = new Queue<>(new ConcurrentHashMap<>());
+        colors = new Queue<>(new ArrayList<>());
+        pixels = new Queue<>(new ConcurrentHashMap<>());
         painting = false;
         font = null;
+    }
+
+    public static void colorPush(Drawable drawing, List<Drawable> drawables, List<ColorSpan> colors) {
+        if (colors.size() > 0 && Objects.equals(drawing.color(), colors.get(colors.size() - 1).color)) {
+            colors.get(colors.size() - 1).span++;
+        } else {
+            colors.add(new ColorSpan(1, drawing.color()));
+        }
+        drawables.add(drawing);
     }
 
     public void flush() {
@@ -41,23 +50,12 @@ public class Canvas extends JPanel {
         this.pixels.add(new ConcurrentHashMap<>(pixels));
     }
 
-    public static void colorPush(Drawable drawing, List<Drawable> drawables, List<ColorSpan> colors) {
-        if (colors.size() > 0 && Objects.equals(drawing.color(), colors.get(colors.size() - 1).color)) {
-            colors.get(colors.size() - 1).span++;
-        }
-        else {
-            colors.add(new ColorSpan(1, drawing.color()));
-        }
-        drawables.add(drawing);
-    }
-
     public void setPixel(Point point, Color color) {
         Rectangle rect = new Rectangle(point.x, point.y, 1, 1, color);
 
         if (pixels.get().containsKey(point)) {
             pixels.get().replace(point, rect);
-        }
-        else {
+        } else {
             pixels.get().put(point, rect);
         }
     }

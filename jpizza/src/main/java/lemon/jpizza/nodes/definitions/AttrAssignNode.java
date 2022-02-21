@@ -1,8 +1,8 @@
 package lemon.jpizza.nodes.definitions;
 
 import lemon.jpizza.JPType;
-import lemon.jpizza.nodes.Node;
 import lemon.jpizza.Token;
+import lemon.jpizza.nodes.Node;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,7 +16,8 @@ public class AttrAssignNode extends Node {
         this.var_name_tok = var_name_tok;
         this.value_node = value_node;
 
-        pos_start = var_name_tok.pos_start; pos_end = var_name_tok.pos_end;
+        pos_start = var_name_tok.pos_start;
+        pos_end = var_name_tok.pos_end;
         jptype = JPType.AttrAssign;
     }
 

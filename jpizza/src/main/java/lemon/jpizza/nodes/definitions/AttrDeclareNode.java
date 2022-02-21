@@ -1,7 +1,7 @@
 package lemon.jpizza.nodes.definitions;
 
-import lemon.jpizza.nodes.Node;
 import lemon.jpizza.Token;
+import lemon.jpizza.nodes.Node;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,7 +25,8 @@ public class AttrDeclareNode extends Node {
 
         name = attrToken.value.toString();
 
-        pos_start = attrToken.pos_start; pos_end = attrToken.pos_end;
+        pos_start = attrToken.pos_start;
+        pos_end = attrToken.pos_end;
     }
 
     public AttrDeclareNode(Token attrToken, List<String> type, boolean isstatic, boolean isprivate, Node value) {
@@ -37,7 +38,8 @@ public class AttrDeclareNode extends Node {
 
         name = attrToken.value.toString();
 
-        pos_start = attrToken.pos_start; pos_end = attrToken.pos_end;
+        pos_start = attrToken.pos_start;
+        pos_end = attrToken.pos_end;
     }
 
     @Override

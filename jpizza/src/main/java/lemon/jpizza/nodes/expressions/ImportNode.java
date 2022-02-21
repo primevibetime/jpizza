@@ -1,6 +1,7 @@
 package lemon.jpizza.nodes.expressions;
 
-import lemon.jpizza.*;
+import lemon.jpizza.JPType;
+import lemon.jpizza.Token;
 import lemon.jpizza.nodes.Node;
 
 import java.util.ArrayList;
@@ -14,7 +15,8 @@ public class ImportNode extends Node {
         this.file_name_tok = file_name_tok;
         this.as_tok = null;
 
-        pos_start = file_name_tok.pos_start.copy(); pos_end = file_name_tok.pos_end.copy();
+        pos_start = file_name_tok.pos_start.copy();
+        pos_end = file_name_tok.pos_end.copy();
         jptype = JPType.Import;
     }
 
@@ -22,7 +24,8 @@ public class ImportNode extends Node {
         this.file_name_tok = file_name_tok;
         this.as_tok = as_tok;
 
-        pos_start = file_name_tok.pos_start.copy(); pos_end = as_tok.pos_end.copy();
+        pos_start = file_name_tok.pos_start.copy();
+        pos_end = as_tok.pos_end.copy();
         jptype = JPType.Import;
     }
 

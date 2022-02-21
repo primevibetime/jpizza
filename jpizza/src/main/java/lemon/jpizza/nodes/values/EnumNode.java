@@ -1,8 +1,8 @@
 package lemon.jpizza.nodes.values;
 
 import lemon.jpizza.JPType;
-import lemon.jpizza.generators.Parser.EnumChild;
 import lemon.jpizza.Token;
+import lemon.jpizza.generators.Parser.EnumChild;
 
 import java.util.List;
 

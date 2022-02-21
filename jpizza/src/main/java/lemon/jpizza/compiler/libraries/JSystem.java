@@ -15,11 +15,13 @@ import java.util.Collections;
 import java.util.List;
 
 public class JSystem extends JPExtension {
-    @Override
-    public String name() { return "sys"; }
-
     public JSystem(VM vm) {
         super(vm);
+    }
+
+    @Override
+    public String name() {
+        return "sys";
     }
 
     @NotNull

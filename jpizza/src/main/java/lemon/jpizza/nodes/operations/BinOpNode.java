@@ -1,6 +1,7 @@
 package lemon.jpizza.nodes.operations;
 
-import lemon.jpizza.*;
+import lemon.jpizza.JPType;
+import lemon.jpizza.TokenType;
 import lemon.jpizza.compiler.vm.VM;
 import lemon.jpizza.nodes.Node;
 import lemon.jpizza.nodes.values.*;
@@ -19,11 +20,14 @@ public class BinOpNode extends Node {
 
         constant = left_node.constant && right_node.constant;
 
-        pos_start = left_node.pos_start.copy(); pos_end = right_node.pos_end.copy();
+        pos_start = left_node.pos_start.copy();
+        pos_end = right_node.pos_end.copy();
         jptype = JPType.BinOp;
     }
 
-    public String toString() { return String.format("(%s, %s, %s)", left_node, op_tok, right_node); }
+    public String toString() {
+        return String.format("(%s, %s, %s)", left_node, op_tok, right_node);
+    }
 
     /*
      * Optimizable operands:
@@ -46,39 +50,47 @@ public class BinOpNode extends Node {
             if (left.getClass() != right.getClass())
                 return opt;
             switch (op_tok) {
-                case Ampersand: return new BooleanNode(left.asBoolean() && right.asBoolean(), pos_start, pos_end);
-                case Pipe: return new BooleanNode(left.asBoolean() || right.asBoolean(), pos_start, pos_end);
+                case Ampersand:
+                    return new BooleanNode(left.asBoolean() && right.asBoolean(), pos_start, pos_end);
+                case Pipe:
+                    return new BooleanNode(left.asBoolean() || right.asBoolean(), pos_start, pos_end);
 
-                case TildeAmpersand: return new NumberNode(VM.bitOp(
-                        left.asNumber(),
-                        right.asNumber(),
-                        (a, b) -> a & b
-                ), pos_start, pos_end);
-                case TildePipe: return new NumberNode(VM.bitOp(
-                        left.asNumber(),
-                        right.asNumber(),
-                        (a, b) -> a | b
-                ), pos_start, pos_end);
-                case TildeCaret: return new NumberNode(VM.bitOp(
-                        left.asNumber(),
-                        right.asNumber(),
-                        (a, b) -> a ^ b
-                ), pos_start, pos_end);
-                case LeftTildeArrow: return new NumberNode(VM.bitOp(
-                        left.asNumber(),
-                        right.asNumber(),
-                        (a, b) -> a << b
-                ), pos_start, pos_end);
-                case TildeTilde: return new NumberNode(VM.bitOp(
-                        left.asNumber(),
-                        right.asNumber(),
-                        (a, b) -> a >> b
-                ), pos_start, pos_end);
-                case RightTildeArrow: return new NumberNode(VM.bitOp(
-                        left.asNumber(),
-                        right.asNumber(),
-                        (a, b) -> a >>> b
-                ), pos_start, pos_end);
+                case TildeAmpersand:
+                    return new NumberNode(VM.bitOp(
+                            left.asNumber(),
+                            right.asNumber(),
+                            (a, b) -> a & b
+                    ), pos_start, pos_end);
+                case TildePipe:
+                    return new NumberNode(VM.bitOp(
+                            left.asNumber(),
+                            right.asNumber(),
+                            (a, b) -> a | b
+                    ), pos_start, pos_end);
+                case TildeCaret:
+                    return new NumberNode(VM.bitOp(
+                            left.asNumber(),
+                            right.asNumber(),
+                            (a, b) -> a ^ b
+                    ), pos_start, pos_end);
+                case LeftTildeArrow:
+                    return new NumberNode(VM.bitOp(
+                            left.asNumber(),
+                            right.asNumber(),
+                            (a, b) -> a << b
+                    ), pos_start, pos_end);
+                case TildeTilde:
+                    return new NumberNode(VM.bitOp(
+                            left.asNumber(),
+                            right.asNumber(),
+                            (a, b) -> a >> b
+                    ), pos_start, pos_end);
+                case RightTildeArrow:
+                    return new NumberNode(VM.bitOp(
+                            left.asNumber(),
+                            right.asNumber(),
+                            (a, b) -> a >>> b
+                    ), pos_start, pos_end);
 
                 case Plus: {
                     if (left instanceof NumberNode)
@@ -90,8 +102,7 @@ public class BinOpNode extends Node {
                         list.addAll(left.asList());
                         list.addAll(right.asList());
                         return new ListNode(list, pos_start, pos_end);
-                    }
-                    else if (left instanceof DictNode) {
+                    } else if (left instanceof DictNode) {
                         Map<Node, Node> map = new HashMap<>();
                         map.putAll(left.asMap());
                         map.putAll(right.asMap());
@@ -99,20 +110,32 @@ public class BinOpNode extends Node {
                     }
                     return opt;
                 }
-                case Minus: return left instanceof NumberNode ? new NumberNode(left.asNumber() - right.asNumber(), pos_start, pos_end) : opt;
-                case Star: return left instanceof NumberNode ? new NumberNode(left.asNumber() * right.asNumber(), pos_start, pos_end) : opt;
-                case Slash: return left instanceof NumberNode ? new NumberNode(left.asNumber() / right.asNumber(), pos_start, pos_end) : opt;
-                case Caret: return left instanceof NumberNode ? new NumberNode(Math.pow(left.asNumber(), right.asNumber()), pos_start, pos_end) : opt;
-                case Percent: return left instanceof NumberNode ? new NumberNode(left.asNumber() % right.asNumber(), pos_start, pos_end) : opt;
+                case Minus:
+                    return left instanceof NumberNode ? new NumberNode(left.asNumber() - right.asNumber(), pos_start, pos_end) : opt;
+                case Star:
+                    return left instanceof NumberNode ? new NumberNode(left.asNumber() * right.asNumber(), pos_start, pos_end) : opt;
+                case Slash:
+                    return left instanceof NumberNode ? new NumberNode(left.asNumber() / right.asNumber(), pos_start, pos_end) : opt;
+                case Caret:
+                    return left instanceof NumberNode ? new NumberNode(Math.pow(left.asNumber(), right.asNumber()), pos_start, pos_end) : opt;
+                case Percent:
+                    return left instanceof NumberNode ? new NumberNode(left.asNumber() % right.asNumber(), pos_start, pos_end) : opt;
 
-                case EqualEqual: return new BooleanNode(left.equals(right), pos_start, pos_end);
-                case BangEqual: return new BooleanNode(!left.equals(right), pos_start, pos_end);
-                case LeftAngle: return new BooleanNode(left.asNumber() < right.asNumber(), pos_start, pos_end);
-                case LessEquals: return new BooleanNode(left.asNumber() <= right.asNumber(), pos_start, pos_end);
-                case GreaterEquals: return new BooleanNode(left.asNumber() >= right.asNumber(), pos_start, pos_end);
-                case RightAngle: return new BooleanNode(left.asNumber() > right.asNumber(), pos_start, pos_end);
+                case EqualEqual:
+                    return new BooleanNode(left.equals(right), pos_start, pos_end);
+                case BangEqual:
+                    return new BooleanNode(!left.equals(right), pos_start, pos_end);
+                case LeftAngle:
+                    return new BooleanNode(left.asNumber() < right.asNumber(), pos_start, pos_end);
+                case LessEquals:
+                    return new BooleanNode(left.asNumber() <= right.asNumber(), pos_start, pos_end);
+                case GreaterEquals:
+                    return new BooleanNode(left.asNumber() >= right.asNumber(), pos_start, pos_end);
+                case RightAngle:
+                    return new BooleanNode(left.asNumber() > right.asNumber(), pos_start, pos_end);
 
-                default: return opt;
+                default:
+                    return opt;
             }
         }
         return this;
@@ -126,35 +149,58 @@ public class BinOpNode extends Node {
     @Override
     public String visualize() {
         switch (op_tok) {
-            case Ampersand: return "&&";
-            case Pipe: return "||";
+            case Ampersand:
+                return "&&";
+            case Pipe:
+                return "||";
 
-            case FatArrow: return "=>";
+            case FatArrow:
+                return "=>";
 
-            case Colon: return ":";
+            case Colon:
+                return ":";
 
-            case TildeAmpersand: return "&";
-            case TildePipe: return "|";
-            case TildeCaret: return "^";
-            case LeftTildeArrow: return "<<";
-            case TildeTilde: return ">>";
-            case RightTildeArrow: return ">>>";
+            case TildeAmpersand:
+                return "&";
+            case TildePipe:
+                return "|";
+            case TildeCaret:
+                return "^";
+            case LeftTildeArrow:
+                return "<<";
+            case TildeTilde:
+                return ">>";
+            case RightTildeArrow:
+                return ">>>";
 
-            case Plus: return "+";
-            case Minus: return "-";
-            case Star: return "*";
-            case Slash: return "/";
-            case Caret: return "pow";
-            case Percent: return "%";
+            case Plus:
+                return "+";
+            case Minus:
+                return "-";
+            case Star:
+                return "*";
+            case Slash:
+                return "/";
+            case Caret:
+                return "pow";
+            case Percent:
+                return "%";
 
-            case EqualEqual: return "==";
-            case BangEqual: return "!=";
-            case LeftAngle: return "<";
-            case LessEquals: return "<=";
-            case GreaterEquals: return ">=";
-            case RightAngle: return ">";
+            case EqualEqual:
+                return "==";
+            case BangEqual:
+                return "!=";
+            case LeftAngle:
+                return "<";
+            case LessEquals:
+                return "<=";
+            case GreaterEquals:
+                return ">=";
+            case RightAngle:
+                return ">";
 
-            default: return "";
+            default:
+                return "";
         }
     }
 }

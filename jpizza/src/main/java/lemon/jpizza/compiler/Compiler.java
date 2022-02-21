@@ -30,75 +30,21 @@ import static lemon.jpizza.Constants.readString;
 
 public class Compiler {
 
-    static class LocalToken {
-        String name;
-        int idx;
-        int len;
-
-        public LocalToken(String name, int idx, int len) {
-            this.name = name;
-            this.idx = idx;
-            this.len = len;
-        }
-    }
-    static class Local {
-        final LocalToken name;
-        int depth;
-
-        Local(LocalToken name, int depth) {
-            this.name = name;
-            this.depth = depth;
-        }
-
-    }
-
-    static class Upvalue {
-        boolean isLocal;
-        boolean isGlobal;
-
-        String globalName;
-        int index;
-
-        public Upvalue(int index, boolean isLocal) {
-            this.index = index;
-            this.isLocal = isLocal;
-            this.isGlobal = false;
-        }
-
-        public Upvalue(String globalName) {
-            this.isGlobal = true;
-            this.globalName = globalName;
-        }
-    }
-
     final Compiler enclosing;
-
-    boolean inPattern = false;
-
     final Local[] locals;
     final Local[] generics;
-    int localCount;
-    int scopeDepth;
-
     final JFunc function;
     final FunctionType type;
-
-    int continueTo;
     final Stack<List<Integer>> breaks;
-
     final List<String> globals;
-
+    final Upvalue[] upvalues;
+    boolean inPattern = false;
+    int localCount;
+    int scopeDepth;
+    int continueTo;
     String packageName;
     String target;
-
-    final Upvalue[] upvalues;
-
     Map<String, Node> macros;
-
-    public Chunk chunk() {
-        return this.function.chunk;
-    }
-    
     public Compiler(FunctionType type, String source) {
         this(null, type, source);
     }
@@ -124,6 +70,16 @@ public class Compiler {
         this.breaks = new Stack<>();
 
         this.macros = new HashMap<>();
+    }
+
+    static boolean equalPackages(String a, String b) {
+        if (a == null || b == null)
+            return a == null && b == null;
+        return a.startsWith(b) || b.startsWith(a) || a.equals(b);
+    }
+
+    public Chunk chunk() {
+        return this.function.chunk;
     }
 
     public void beginScope() {
@@ -239,7 +195,7 @@ public class Compiler {
     }
 
     void emit(int[] bs, @NotNull Position start, @NotNull Position end) {
-        for (int b : bs) 
+        for (int b : bs)
             chunk().write(b, start.idx, end.idx - start.idx);
     }
 
@@ -479,11 +435,9 @@ public class Compiler {
 
         if (arg != -1) {
             emit(OpCode.SetLocal, arg, node.pos_start, node.pos_end);
-        }
-        else if ((arg = resolveUpvalue(name)) != -1) {
+        } else if ((arg = resolveUpvalue(name)) != -1) {
             emit(OpCode.SetUpvalue, arg, node.pos_start, node.pos_end);
-        }
-        else {
+        } else {
             arg = chunk().addConstant(new Value(name));
             emit(OpCode.SetGlobal, arg, node.pos_start, node.pos_end);
         }
@@ -518,10 +472,18 @@ public class Compiler {
     void compile(UseNode node) {
         int code;
         switch (node.useToken.value.toString()) {
-            case "memoize": code = HeadCode.Memoize; break;
-            case "func": code = HeadCode.SetMainFunction; break;
-            case "object": code = HeadCode.SetMainClass; break;
-            case "export": code = HeadCode.Export; break;
+            case "memoize":
+                code = HeadCode.Memoize;
+                break;
+            case "func":
+                code = HeadCode.SetMainFunction;
+                break;
+            case "object":
+                code = HeadCode.SetMainClass;
+                break;
+            case "export":
+                code = HeadCode.Export;
+                break;
             case "package":
                 StringBuilder sb = new StringBuilder();
                 for (Token token : node.args) {
@@ -534,8 +496,7 @@ public class Compiler {
             case "export_to":
                 if (node.args.size() != 1) {
                     Shell.logger.fail(new Error(node.pos_start, node.pos_end, "Argument Count", "export_to() takes exactly one argument").asString());
-                }
-                else {
+                } else {
                     target = node.args.get(0).asString();
                     chunk().target = target;
                 }
@@ -593,8 +554,7 @@ public class Compiler {
             for (List<String> rawType : child.types())
                 if (rawType.size() == 1 && child.generics().contains(rawType.get(0))) {
                     genericSlots.add(child.generics().indexOf(rawType.get(0)));
-                }
-                else {
+                } else {
                     genericSlots.add(-1);
                 }
 
@@ -617,13 +577,7 @@ public class Compiler {
                 name,
                 children
         )));
-        emit(new int[]{ OpCode.Enum, constant, node.pub ? 1 : 0 }, node.pos_start, node.pos_end);
-    }
-
-    static boolean equalPackages(String a, String b) {
-        if (a == null || b == null)
-            return a == null && b == null;
-        return a.startsWith(b) || b.startsWith(a) || a.equals(b);
+        emit(new int[]{OpCode.Enum, constant, node.pub ? 1 : 0}, node.pos_start, node.pos_end);
     }
 
     JFunc canImport(JFunc func) throws IOException {
@@ -635,8 +589,7 @@ public class Compiler {
             if (Objects.equals(target, "package")) {
                 if (!equalPackages(packageName, chunk.packageName))
                     throw new IOException("Cannot import file outside of package");
-            }
-            else if (!target.equals("all")) {
+            } else if (!target.equals("all")) {
                 throw new IOException("File is not a module");
             }
         }
@@ -662,22 +615,18 @@ public class Compiler {
                 if (res.b != null)
                     Shell.logger.fail(res.b.asString());
                 imp = res.a;
-            }
-            else if (Files.exists(Paths.get(modFilePath + ".jbox"))) {
+            } else if (Files.exists(Paths.get(modFilePath + ".jbox"))) {
                 imp = canImport(Shell.load(readString(Paths.get(modFilePath + ".jbox"))));
-            }
-            else if (Files.exists(Paths.get(fileName + ".jbox"))) {
+            } else if (Files.exists(Paths.get(fileName + ".jbox"))) {
                 imp = canImport(Shell.load(readString(Paths.get(fileName + ".jbox"))));
-            }
-            else if (Files.exists(Paths.get(fileName + ".devp"))) {
+            } else if (Files.exists(Paths.get(fileName + ".devp"))) {
                 //noinspection DuplicatedCode
                 Pair<JFunc, Error> res = Shell.compile(fn, readString(Paths.get(fileName + ".devp")));
                 if (res.b != null)
                     Shell.logger.fail(res.b.asString());
                 imp = canImport(res.a);
                 System.setProperty("user.dir", chrDir);
-            }
-            else if (Files.exists(Paths.get(fn + ".devp"))) {
+            } else if (Files.exists(Paths.get(fn + ".devp"))) {
                 String[] split = Shell.getFNDirs(fn);
                 System.setProperty("user.dir", split[1]);
                 Pair<JFunc, Error> res = Shell.compile(split[0], readString(Paths.get(fn + ".devp")));
@@ -685,14 +634,12 @@ public class Compiler {
                     Shell.logger.fail(res.b.asString());
                 imp = canImport(res.a);
                 System.setProperty("user.dir", chrDir);
-            }
-            else if (Files.exists(Paths.get(fn + ".jbox"))) {
+            } else if (Files.exists(Paths.get(fn + ".jbox"))) {
                 String[] split = Shell.getFNDirs(fn);
                 System.setProperty("user.dir", split[1]);
                 imp = canImport(Shell.load(readString(Paths.get(fn + ".jbox"))));
                 System.setProperty("user.dir", chrDir);
-            }
-            else if (Files.exists(Paths.get(modFilePath + ".devp"))) {
+            } else if (Files.exists(Paths.get(modFilePath + ".devp"))) {
                 System.setProperty("user.dir", modPath);
                 //noinspection DuplicatedCode
                 Pair<JFunc, Error> res = Shell.compile(fn, readString(Paths.get(modFilePath + ".devp")));
@@ -709,8 +656,7 @@ public class Compiler {
         if (imp != null) {
             int addr = chunk().addConstant(new Value(imp));
             emit(OpCode.Constant, addr, node.pos_start, node.pos_end);
-        }
-        else {
+        } else {
             compileNull(node.pos_start, node.pos_end);
         }
 
@@ -737,8 +683,7 @@ public class Compiler {
     void compile(ReturnNode node) {
         if (node.nodeToReturn != null) {
             compile(node.nodeToReturn);
-        }
-        else {
+        } else {
             compileNull(node.pos_start, node.pos_end);
         }
         emit(OpCode.Return, node.pos_start, node.pos_end);
@@ -782,12 +727,12 @@ public class Compiler {
 
     void compile(SwitchNode node) {
         wrapScope(compiler -> {
-            if (node.match)
-                compiler.compileMatch(node);
-            else
-                compiler.compileSwitch(node);
-        },
-        null, node.pos_start, node.pos_end);
+                    if (node.match)
+                        compiler.compileMatch(node);
+                    else
+                        compiler.compileSwitch(node);
+                },
+                null, node.pos_start, node.pos_end);
     }
 
     void compileSwitch(SwitchNode node) {
@@ -849,8 +794,7 @@ public class Compiler {
 
         if (node.elseCase != null) {
             compile(node.elseCase.statements);
-        }
-        else {
+        } else {
             compileNull(node.pos_start, node.pos_end);
         }
 
@@ -866,7 +810,9 @@ public class Compiler {
     }
 
     void function(FunctionType type, FuncDefNode node) {
-        function(type, node, c -> {}, c -> {});
+        function(type, node, c -> {
+        }, c -> {
+        });
     }
 
     void function(FunctionType type, FuncDefNode node, CompilerWrapped pre, CompilerWrapped post) {
@@ -899,8 +845,7 @@ public class Compiler {
 
             if (rawType.size() == 1 && genericNames.contains(rawType.get(0))) {
                 compiler.function.genericSlots.add(genericNames.indexOf(rawType.get(0)));
-            }
-            else {
+            } else {
                 compiler.function.genericSlots.add(-1);
             }
         }
@@ -941,15 +886,14 @@ public class Compiler {
                 compile(defaultValue);
         }
 
-        emit(new int[]{ OpCode.Closure, chunk().addConstant(new Value(function)), node.defaultCount }, node.pos_start, node.pos_end);
+        emit(new int[]{OpCode.Closure, chunk().addConstant(new Value(function)), node.defaultCount}, node.pos_start, node.pos_end);
 
         for (int i = 0; i < function.upvalueCount; i++) {
             Upvalue upvalue = compiler.upvalues[i];
             emit(upvalue.isLocal ? 1 : upvalue.isGlobal ? 2 : 0, node.pos_start, node.pos_end);
             if (!upvalue.isGlobal) {
                 emit(upvalue.index, node.pos_start, node.pos_end);
-            }
-            else {
+            } else {
                 emit(chunk().addConstant(new Value(upvalue.globalName)), node.pos_start, node.pos_end);
             }
         }
@@ -982,22 +926,19 @@ public class Compiler {
             compile(node.right_node);
             patchJump(jump);
             return;
-        }
-        else if (node.op_tok == TokenType.Pipe) {
+        } else if (node.op_tok == TokenType.Pipe) {
             compile(node.left_node);
             int jump = emitJump(OpCode.JumpIfTrue, node.left_node.pos_start, node.left_node.pos_end);
             emit(OpCode.Pop, node.left_node.pos_start, node.left_node.pos_end);
             compile(node.right_node);
             patchJump(jump);
             return;
-        }
-        else if (node.op_tok == TokenType.FatArrow) {
+        } else if (node.op_tok == TokenType.FatArrow) {
             compile(node.right_node);
             compile(node.left_node);
             emit(OpCode.SetRef, node.pos_start, node.pos_end);
             return;
-        }
-        else if (node.op_tok == TokenType.Colon) {
+        } else if (node.op_tok == TokenType.Colon) {
             emit(OpCode.NullErr, 1, node.pos_start, node.pos_end);
             compile(node.left_node);
             emit(OpCode.IncrNullErr, node.pos_start, node.pos_end);
@@ -1033,7 +974,7 @@ public class Compiler {
                 emit(OpCode.Equal, node.pos_start, node.pos_end);
                 break;
             case BangEqual:
-                emit(new int[]{ OpCode.Equal, OpCode.Not }, node.pos_start, node.pos_end);
+                emit(new int[]{OpCode.Equal, OpCode.Not}, node.pos_start, node.pos_end);
                 break;
             case RightAngle:
                 emit(OpCode.GreaterThan, node.pos_start, node.pos_end);
@@ -1042,10 +983,10 @@ public class Compiler {
                 emit(OpCode.LessThan, node.pos_start, node.pos_end);
                 break;
             case GreaterEquals:
-                emit(new int[]{ OpCode.LessThan, OpCode.Not }, node.pos_start, node.pos_end);
+                emit(new int[]{OpCode.LessThan, OpCode.Not}, node.pos_start, node.pos_end);
                 break;
             case LessEquals:
-                emit(new int[]{ OpCode.GreaterThan, OpCode.Not }, node.pos_start, node.pos_end);
+                emit(new int[]{OpCode.GreaterThan, OpCode.Not}, node.pos_start, node.pos_end);
                 break;
 
             case LeftBracket:
@@ -1102,7 +1043,8 @@ public class Compiler {
             case DollarSign:
                 emit(OpCode.FromBytes, node.pos_start, node.pos_end);
                 break;
-            default: throw new RuntimeException("Unknown operator: " + node.op_tok);
+            default:
+                throw new RuntimeException("Unknown operator: " + node.op_tok);
         }
     }
 
@@ -1121,16 +1063,13 @@ public class Compiler {
 
         if (arg != -1) {
             emit(OpCode.GetLocal, arg, start, end);
-        }
-        else if ((arg = resolveUpvalue(name)) != -1) {
+        } else if ((arg = resolveUpvalue(name)) != -1) {
             emit(OpCode.GetUpvalue, arg, start, end);
-        }
-        else if (inPattern && !hasGlobal(name)) {
+        } else if (inPattern && !hasGlobal(name)) {
             arg = chunk().addConstant(new Value(name));
             addLocal(name, start, end);
             emit(OpCode.PatternVars, arg, start, end);
-        }
-        else {
+        } else {
             arg = chunk().addConstant(new Value(name));
             emit(OpCode.GetGlobal, arg, start, end);
         }
@@ -1148,12 +1087,10 @@ public class Compiler {
         if (arg != -1) {
             locals[arg] = null;
             emit(OpCode.DropLocal, arg, node.pos_start, node.pos_end);
-        }
-        else if ((arg = resolveUpvalue(name)) != -1) {
+        } else if ((arg = resolveUpvalue(name)) != -1) {
             upvalues[arg] = null;
             emit(OpCode.DropUpvalue, arg, node.pos_start, node.pos_end);
-        }
-        else {
+        } else {
             arg = chunk().addConstant(new Value(name));
             globals.remove(name);
             emit(OpCode.DropGlobal, arg, node.pos_start, node.pos_end);
@@ -1255,18 +1192,12 @@ public class Compiler {
 
         if (arg != -1) {
             emit(OpCode.SetLocal, arg, start, end);
-        }
-        else if ((arg = resolveUpvalue(name)) != -1) {
+        } else if ((arg = resolveUpvalue(name)) != -1) {
             emit(OpCode.SetUpvalue, arg, start, end);
-        }
-        else {
+        } else {
             arg = chunk().addConstant(new Value(name));
             emit(OpCode.SetGlobal, arg, start, end);
         }
-    }
-
-    interface CompilerWrapped {
-        void compile(Compiler compiler);
     }
 
     void wrapScope(CompilerWrapped method, String scopeName, Position start, Position end) {
@@ -1281,18 +1212,17 @@ public class Compiler {
         func.name = scopeName;
         func.returnType = Collections.singletonList("any");
 
-        emit(new int[]{ OpCode.Closure, chunk().addConstant(new Value(func)), 0 }, start, end);
+        emit(new int[]{OpCode.Closure, chunk().addConstant(new Value(func)), 0}, start, end);
         for (int i = 0; i < func.upvalueCount; i++) {
             Upvalue upvalue = scope.upvalues[i];
             emit(upvalue.isLocal ? 1 : upvalue.isGlobal ? 2 : 0, start, end);
             if (!upvalue.isGlobal) {
                 emit(upvalue.index, start, end);
-            }
-            else {
+            } else {
                 emit(chunk().addConstant(new Value(upvalue.globalName)), start, end);
             }
         }
-        emit(new int[]{ OpCode.Call, 0, 0, 0 }, start, end);
+        emit(new int[]{OpCode.Call, 0, 0, 0}, start, end);
     }
 
     void compile(ScopeNode node) {
@@ -1365,8 +1295,7 @@ public class Compiler {
 
         if (returnsNull) {
             emit(OpCode.Pop, body.pos_start, body.pos_end);
-        }
-        else {
+        } else {
             emit(OpCode.CollectLoop, body.pos_start, body.pos_end);
         }
 
@@ -1387,8 +1316,7 @@ public class Compiler {
         int g = resolveGeneric(type);
         if (g != -1) {
             return "@" + g;
-        }
-        else {
+        } else {
             return type;
         }
     }
@@ -1425,7 +1353,8 @@ public class Compiler {
         for (int i = 0; i < node.generic_toks.size(); i++)
             compileNull(node.pos_start, node.pos_end);
 
-        if (node.parentToken != null) accessVariable(node.parentToken.value.toString(), node.parentToken.pos_start, node.parentToken.pos_end);
+        if (node.parentToken != null)
+            accessVariable(node.parentToken.value.toString(), node.parentToken.pos_start, node.parentToken.pos_end);
 
         emit(OpCode.Class, nameConstant, node.pos_start, node.pos_end);
         emit(node.parentToken != null ? 1 : 0, node.pos_start, node.pos_end);
@@ -1434,11 +1363,11 @@ public class Compiler {
 
         for (Token tok : node.generic_toks)
             compile(new AttrDeclareNode(
-                tok,
+                    tok,
                     Collections.singletonList("String"),
-                false,
-                true,
-                null
+                    false,
+                    true,
+                    null
             ));
 
         for (AttrDeclareNode attr : node.attributes)
@@ -1491,13 +1420,14 @@ public class Compiler {
                 (compiler) -> {
                     if (isConstructor) for (Token tok : genericToks) {
                         compiler.compile(new AttrAssignNode(
-                            tok,
-                            new VarAccessNode(tok)
+                                tok,
+                                new VarAccessNode(tok)
                         ));
                         compiler.emit(OpCode.Pop, tok.pos_start, tok.pos_end);
                     }
                 },
-                (compiler) -> {}
+                (compiler) -> {
+                }
         );
 
         emit(new int[]{
@@ -1543,12 +1473,11 @@ public class Compiler {
 
         if (node.retnull) {
             compileNull(node.pos_start, node.pos_end);
-        }
-        else {
+        } else {
             emit(OpCode.FlushLoop, node.pos_start, node.pos_end);
         }
     }
-    
+
     void compile(ForNode node) {
         if (!node.retnull) emit(OpCode.StartCache, node.pos_start, node.pos_end);
         beginScope();
@@ -1563,8 +1492,7 @@ public class Compiler {
         compile(node.end_value_node);
         if (node.step_value_node != null) {
             compile(node.step_value_node);
-        }
-        else {
+        } else {
             compileNumber(1, node.pos_start, node.pos_end);
         }
 
@@ -1624,8 +1552,7 @@ public class Compiler {
 
         if (retnull) {
             compileNull(start, end);
-        }
-        else {
+        } else {
             emit(OpCode.FlushLoop, start, end);
         }
     }
@@ -1653,6 +1580,52 @@ public class Compiler {
             compile(entry.getValue());
         }
         emit(OpCode.MakeMap, size, node.pos_start, node.pos_end);
+    }
+
+    interface CompilerWrapped {
+        void compile(Compiler compiler);
+    }
+
+    static class LocalToken {
+        String name;
+        int idx;
+        int len;
+
+        public LocalToken(String name, int idx, int len) {
+            this.name = name;
+            this.idx = idx;
+            this.len = len;
+        }
+    }
+
+    static class Local {
+        final LocalToken name;
+        int depth;
+
+        Local(LocalToken name, int depth) {
+            this.name = name;
+            this.depth = depth;
+        }
+
+    }
+
+    static class Upvalue {
+        boolean isLocal;
+        boolean isGlobal;
+
+        String globalName;
+        int index;
+
+        public Upvalue(int index, boolean isLocal) {
+            this.index = index;
+            this.isLocal = isLocal;
+            this.isGlobal = false;
+        }
+
+        public Upvalue(String globalName) {
+            this.isGlobal = true;
+            this.globalName = globalName;
+        }
     }
 
 }

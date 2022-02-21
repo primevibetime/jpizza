@@ -8,21 +8,25 @@ public class ParseResult<T> {
     public int advanceCount = 0;
     public int toReverseCount = 0;
 
-    public void registerAdvancement() { advanceCount++; }
+    public void registerAdvancement() {
+        advanceCount++;
+    }
 
-    public<U> U register(ParseResult<U> res) {
+    public <U> U register(ParseResult<U> res) {
         advanceCount += res.advanceCount;
         if (res.error != null) {
             error = res.error;
-        } return res.node;
+        }
+        return res.node;
     }
 
-    public<U> U try_register(ParseResult<U> res) {
+    public <U> U try_register(ParseResult<U> res) {
         if (res.error != null) {
             error = res.error;
             toReverseCount += res.advanceCount;
             return null;
-        } return register(res);
+        }
+        return register(res);
     }
 
     public ParseResult<T> success(T node) {
@@ -33,7 +37,8 @@ public class ParseResult<T> {
     public ParseResult<T> failure(Error error) {
         if (this.error == null || advanceCount == 0) {
             this.error = error;
-        } return this;
+        }
+        return this;
     }
 
 

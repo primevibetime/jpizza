@@ -9,6 +9,7 @@ import java.util.List;
 
 public class AssertNode extends Node {
     public final Node condition;
+
     public AssertNode(Node condition) {
         this.condition = condition;
         pos_start = condition.pos_start;

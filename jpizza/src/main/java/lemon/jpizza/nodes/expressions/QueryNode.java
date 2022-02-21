@@ -15,7 +15,8 @@ public class QueryNode extends Node {
     public QueryNode(List<Case> cases, ElseCase else_case) {
         this.else_case = else_case;
         this.cases = cases;
-        pos_start = cases.get(0).condition.pos_start.copy(); pos_end = (
+        pos_start = cases.get(0).condition.pos_start.copy();
+        pos_end = (
                 else_case != null ? else_case.statements : cases.get(cases.size() - 1).condition
         ).pos_end.copy();
         jptype = JPType.Query;

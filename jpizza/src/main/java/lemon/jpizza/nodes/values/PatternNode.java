@@ -4,7 +4,10 @@ import lemon.jpizza.JPType;
 import lemon.jpizza.Token;
 import lemon.jpizza.nodes.Node;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 
 public class PatternNode extends Node {
     public final Node accessNode;
@@ -14,7 +17,8 @@ public class PatternNode extends Node {
         this.accessNode = accessNode;
         this.patterns = patterns;
 
-        pos_start = accessNode.pos_start; pos_end = accessNode.pos_end;
+        pos_start = accessNode.pos_start;
+        pos_end = accessNode.pos_end;
         jptype = JPType.Pattern;
     }
 

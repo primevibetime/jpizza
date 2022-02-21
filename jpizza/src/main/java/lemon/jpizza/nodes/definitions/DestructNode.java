@@ -4,7 +4,9 @@ import lemon.jpizza.JPType;
 import lemon.jpizza.Token;
 import lemon.jpizza.nodes.Node;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class DestructNode extends Node {
     public final Node target;
@@ -44,8 +46,7 @@ public class DestructNode extends Node {
     public String visualize() {
         if (glob) {
             return "destruct *";
-        }
-        else {
+        } else {
             StringBuilder sb = new StringBuilder();
             sb.append("destruct ");
             for (Token struct : subs)

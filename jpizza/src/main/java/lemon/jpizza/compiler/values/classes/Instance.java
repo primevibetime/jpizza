@@ -15,9 +15,9 @@ public class Instance {
     public final Map<String, ClassAttr> fields;
     public final Map<String, Value> methods;
     public final Map<String, Value> binMethods;
-    public Value self;
     final VM vm;
     final Map<String, String> generics;
+    public Value self;
 
     public Instance(JClass clazz, VM vm) {
         this.clazz = clazz;
@@ -48,6 +48,18 @@ public class Instance {
         }
     }
 
+    public static NativeResult setField(String name, Value value, Map<String, ClassAttr> fields, boolean staticContext, boolean internal) {
+        ClassAttr attr = fields.get(name);
+        if (attr != null && attr.isStatic == staticContext && (!attr.isPrivate || internal)) {
+            String type = value.type();
+            if (!attr.type.equals("any") && !attr.type.equals(type))
+                return NativeResult.Err("Type", "Expected " + attr.type + " but got " + type);
+            attr.set(value);
+            return NativeResult.Ok();
+        }
+        return NativeResult.Err("Scope", "Undefined attribute '" + name + "'");
+    }
+
     public void putGeneric(String key, String val) {
         generics.put(key, val);
     }
@@ -67,8 +79,7 @@ public class Instance {
         if (value.isEnumChild && hasField("$child") && hasField("$child")) {
             return value.asEnumChild().getValue() == fields.get("$child").val.asNumber().intValue() &&
                     value.asEnumChild().getParent() == fields.get("$parent").val.asEnum();
-        }
-        else if (value.isClass) {
+        } else if (value.isClass) {
             return clazz == value.asClass();
         }
         return false;
@@ -101,8 +112,7 @@ public class Instance {
             VMResult res = vm.run();
             if (res == VMResult.ERROR) {
                 return def;
-            }
-            else {
+            } else {
                 return null;
             }
         }
@@ -131,18 +141,6 @@ public class Instance {
 
     public NativeResult setField(String name, Value value, boolean internal) {
         return setField(name, value, fields, false, internal);
-    }
-
-    public static NativeResult setField(String name, Value value, Map<String, ClassAttr> fields, boolean staticContext, boolean internal) {
-        ClassAttr attr = fields.get(name);
-        if (attr != null && attr.isStatic == staticContext && (!attr.isPrivate || internal)) {
-            String type = value.type();
-            if (!attr.type.equals("any") && !attr.type.equals(type))
-                return NativeResult.Err("Type", "Expected " + attr.type + " but got " + type);
-            attr.set(value);
-            return NativeResult.Ok();
-        }
-        return NativeResult.Err("Scope", "Undefined attribute '" + name + "'");
     }
 
     public Double asNumber() {

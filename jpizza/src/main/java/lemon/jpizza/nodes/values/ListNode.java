@@ -1,8 +1,8 @@
 package lemon.jpizza.nodes.values;
 
 import lemon.jpizza.JPType;
-import lemon.jpizza.nodes.Node;
 import lemon.jpizza.Position;
+import lemon.jpizza.nodes.Node;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -22,7 +22,8 @@ public class ListNode extends Node {
             }
         }
 
-        this.pos_start = pos_start.copy(); this.pos_end = pos_end.copy();
+        this.pos_start = pos_start.copy();
+        this.pos_end = pos_end.copy();
         jptype = JPType.List;
     }
 
@@ -51,15 +52,15 @@ public class ListNode extends Node {
         elements.forEach(k -> {
             if (k.jptype == JPType.String) {
                 result.append('"').append(k.asString()).append('"');
-            }
-            else {
+            } else {
                 result.append(k.asString());
             }
             result.append(", ");
         });
         if (result.length() > 1) {
             result.setLength(result.length() - 2);
-        } result.append("]");
+        }
+        result.append("]");
         return result.toString();
     }
 
