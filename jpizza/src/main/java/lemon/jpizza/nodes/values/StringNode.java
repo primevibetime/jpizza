@@ -6,6 +6,7 @@ import org.apache.commons.text.StringEscapeUtils;
 
 public class StringNode extends ValueNode {
     public final String val;
+
     public StringNode(Token tok) {
         super(tok);
         val = ((Pair<String, Boolean>) tok.value).a;

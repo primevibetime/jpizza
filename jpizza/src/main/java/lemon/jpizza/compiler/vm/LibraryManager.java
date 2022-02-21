@@ -21,9 +21,7 @@ import java.util.regex.Pattern;
 import static lemon.jpizza.Constants.readString;
 
 public class LibraryManager {
-    VM vm;
-
-    static final HashMap<String, String> SHIFT = new HashMap<String, String>(){{
+    static final HashMap<String, String> SHIFT = new HashMap<String, String>() {{
         put("1", "!");
         put("2", "@");
         put("3", "#");
@@ -51,13 +49,18 @@ public class LibraryManager {
         put("-", "_");
         put("=", "+");
     }};
-    static final HashMap<String, String> UNSHIFT = new HashMap<String, String>(){{
+    static final HashMap<String, String> UNSHIFT = new HashMap<String, String>() {{
         for (String k : SHIFT.keySet())
             put(SHIFT.get(k), k);
     }};
-    
+    VM vm;
+
     private LibraryManager(VM vm) {
         this.vm = vm;
+    }
+
+    public static void Setup(VM vm) {
+        new LibraryManager(vm).setup();
     }
 
     private void define(String name, JNative.Method method, int argc) {
@@ -66,10 +69,6 @@ public class LibraryManager {
 
     private void define(String name, JNative.Method method, List<String> types) {
         vm.defineNative(name, method, types);
-    }
-
-    public static void Setup(VM vm) {
-        new LibraryManager(vm).setup();
     }
 
     private void setup() {
@@ -102,7 +101,9 @@ public class LibraryManager {
         new AbstractWindowToolkit(vm).setup();
     }
 
-    private void json() { new JPSon(vm).setup(); }
+    private void json() {
+        new JPSon(vm).setup();
+    }
 
     private void sys() {
         new JSystem(vm).setup();
@@ -172,11 +173,9 @@ public class LibraryManager {
                     return NativeResult.Err(pair.b.error_name, pair.b.details);
                 }
                 Shell.runCompiled(path, pair.a, new String[0]);
-            }
-            else if (path.endsWith(".jbox")) {
+            } else if (path.endsWith(".jbox")) {
                 Shell.runCompiled(path, path, new String[0]);
-            }
-            else {
+            } else {
                 return NativeResult.Err("File Extension", "Invalid file extension");
             }
             return NativeResult.Ok();
@@ -186,11 +185,11 @@ public class LibraryManager {
             try {
                 if (System.getProperty("os.name").toLowerCase().contains("windows")) {
                     new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
-                }
-                else {
+                } else {
                     Runtime.getRuntime().exec("clear");
                 }
-            } catch (IOException | InterruptedException ignored) {}
+            } catch (IOException | InterruptedException ignored) {
+            }
             return NativeResult.Ok();
         }, 0);
 
@@ -260,7 +259,7 @@ public class LibraryManager {
         define("num", (args) -> NativeResult.Ok(new Value(args[0].asNumber())), 1);
         define("dict", (args) -> NativeResult.Ok(new Value(args[0].asMap())), 1);
         define("chr", (args) -> NativeResult.Ok(new Value(new String(
-                new byte[] { args[0].asNumber().byteValue() }
+                new byte[]{args[0].asNumber().byteValue()}
         ))), Collections.singletonList("num"));
         define("chrs", (args) -> NativeResult.Ok(new Value(new String(
                 args[0].asBytes()

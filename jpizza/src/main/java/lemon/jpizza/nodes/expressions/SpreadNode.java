@@ -9,9 +9,11 @@ import java.util.List;
 
 public class SpreadNode extends Node {
     public final Node internal;
+
     public SpreadNode(Node internal) {
         this.internal = internal;
-        pos_start = internal.pos_start; pos_end = internal.pos_end;
+        pos_start = internal.pos_start;
+        pos_end = internal.pos_end;
         this.jptype = JPType.Spread;
         constant = internal.constant;
     }

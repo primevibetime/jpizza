@@ -9,9 +9,11 @@ import java.util.List;
 
 public class RefNode extends Node {
     public final Node inner;
+
     public RefNode(Node inner) {
         this.inner = inner;
-        pos_start = inner.pos_start; pos_end = inner.pos_end;
+        pos_start = inner.pos_start;
+        pos_end = inner.pos_end;
         jptype = JPType.Ref;
     }
 

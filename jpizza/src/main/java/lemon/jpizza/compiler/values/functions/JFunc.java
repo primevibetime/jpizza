@@ -90,8 +90,7 @@ public class JFunc {
             list.add(returnType.size());
             for (String s : returnType)
                 Value.addAllString(list, s);
-        }
-        else {
+        } else {
             list.add(0);
         }
 
@@ -125,10 +124,10 @@ public class JFunc {
         byte[] bytes = new byte[dump.length * 4];
         for (int i = 0; i < dump.length; i++) {
             int v = dump[i];
-            bytes[i * 4    ] = (byte) (v >>> 24);
+            bytes[i * 4] = (byte) (v >>> 24);
             bytes[i * 4 + 1] = (byte) (v >>> 16);
-            bytes[i * 4 + 2] = (byte) (v >>>  8);
-            bytes[i * 4 + 3] = (byte) (v       );
+            bytes[i * 4 + 2] = (byte) (v >>> 8);
+            bytes[i * 4 + 3] = (byte) (v);
         }
         return bytes;
     }
